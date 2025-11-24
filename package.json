@@ -1,0 +1,18 @@
+{
+  "name": "afro-node-dapp",
+  "version": "1.0.0",
+  "description": "AFRO-NODE DApp Frontend MVP",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build" 
+  },
+  "dependencies": {
+    "@ton/core": "^0.60.0",
+    "@tonconnect/ui-react": "^1.0.6", // *** FIXED VERSION HERE ***
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
