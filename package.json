@@ -1,17 +1,17 @@
 {
-  "name": "afro-node-frontend", // This name might differ
-  "version": "0.1.0",           // This version might differ
+  "name": "afro-node-frontend",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "vite", // Or "react-scripts start"
-    "build": "vite build", // This is the crucial line for Netlify
+    "dev": "vite",
+    "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
-    // your frontend dependencies
+    // Add your actual frontend dependencies here if they exist
   },
   "devDependencies": {
-    // your frontend dev dependencies
+    // Add your actual frontend dev dependencies here if they exist
   }
 }
