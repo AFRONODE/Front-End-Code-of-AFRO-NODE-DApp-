@@ -1,18 +1,17 @@
 {
-  "name": "afro-node-dapp",
-  "version": "1.0.0",
-  "description": "AFRO-NODE DApp Frontend MVP",
+  "name": "afro-node-frontend", // This name might differ
+  "version": "0.1.0",           // This version might differ
+  "private": true,
   "scripts": {
-    "start": "vite",
-    "build": "vite build" 
+    "dev": "vite", // Or "react-scripts start"
+    "build": "vite build", // This is the crucial line for Netlify
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@ton/core": "^0.60.0",
-    "@tonconnect/ui-react": "^1.0.6", // *** FIXED VERSION HERE ***
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    // your frontend dependencies
   },
   "devDependencies": {
-    "vite": "^5.0.0"
+    // your frontend dev dependencies
   }
 }
