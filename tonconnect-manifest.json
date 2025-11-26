@@ -1,5 +1,6 @@
 {
-  "url": "YOUR_NETLIFY_URL",
+  "url": "https://afro-nodedapp.netlify.app/",
   "name": "AFRO-NODE DApp",
-  "iconUrl": "YOUR_NETLIFY_URL/icon.png"
+  "iconUrl": "https://afro-nodedapp.netlify.app/icon.png"
 }
+
