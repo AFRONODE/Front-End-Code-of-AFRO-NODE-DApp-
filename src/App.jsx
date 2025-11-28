@@ -32,7 +32,7 @@ const MyEscrows = () => {
     return (
         <div className="p-8 text-white">
             <h2 className="text-2xl font-semibold mb-4 text-anode-primary">My Escrows & Dispute Resolution</h2>
-            <div className="bg-anode-bg p-6 rounded-lg shadow-xl">
+            <div className="bg-gray-700 p-6 rounded-lg shadow-xl">
                 <h3 className="text-xl font-medium mb-4">Escrow Details (Mock)</h3>
                 <p><strong>Locked Amount:</strong> {mockEscrow.assetLockedAmount} ANODE</p>
                 <p><strong>Service Cost:</strong> {mockEscrow.originalServiceCost} ANODE</p>
@@ -69,9 +69,10 @@ const useWalletData = () => {
     const [balances, setBalances] = useState({ ton: '0.00', anode: '0.00' });
     const [isAdmin, setIsAdmin] = useState(false);
     
-    // Replace these with your actual contract addresses from Netlify ENV
-    const ANODE_MASTER_ADDRESS = 'EQD...anode_master...'; 
-    const HUB_DAO_ADDRESS = 'EQC...hub_dao...';
+    // Contract addresses for your Tact and FunC backend logic
+    // Use a TEMPORARY placeholder address if the ENV VAR is missing (THIS IS THE FIX)
+    const ANODE_MASTER_ADDRESS = import.meta.env.VITE_ANODE_MASTER_ADDRESS || 'EQA1_DUMMY_MASTER_ADDRESS_PLACEHOLDER_4_UI';
+    const HUB_DAO_ADDRESS = import.meta.env.VITE_HUB_DAO_ADDRESS || 'EQA1_DUMMY_HUB_DAO_ADDRESS_PLACEHOLDER_4_UI';
     
     // Mocking the balance fetch and admin check for now
     useEffect(() => {
@@ -103,7 +104,7 @@ const shortenAddress = (address) => {
 const Header = ({ tonBalance, anodeBalance, userFriendlyAddress, isConnected }) => {
     return (
         <header className="flex justify-between items-center p-4 bg-gray-800 shadow-xl sticky top-0 z-10">
-            <h1 className="text-2xl font-extrabold text-anode-primary">AFRO-NODE DApp</h1>
+            <h1 className="text-2xl font-extrabold text-cyan-400">AFRO-NODE DApp</h1>
             <div className="flex items-center space-x-4">
                 {isConnected && (
                     <div className="text-sm text-gray-300 bg-gray-700 p-2 rounded-lg font-mono">
@@ -119,7 +120,7 @@ const Header = ({ tonBalance, anodeBalance, userFriendlyAddress, isConnected }) 
 
 // --- Navigation Links ---
 const Navigation = ({ isAdmin }) => {
-    const baseClass = "text-gray-300 hover:text-anode-primary px-3 py-2 rounded-md text-sm font-medium transition-colors";
+    const baseClass = "text-gray-300 hover:text-cyan-400 px-3 py-2 rounded-md text-sm font-medium transition-colors";
 
     return (
         <nav className="bg-gray-700 shadow-inner">
@@ -145,7 +146,7 @@ function App() {
 
     return (
         <Router>
-            <div className="min-h-screen bg-anode-dark">
+            <div className="min-h-screen bg-gray-900">
                 <Header 
                     tonBalance={tonBalance} 
                     anodeBalance={anodeBalance} 
