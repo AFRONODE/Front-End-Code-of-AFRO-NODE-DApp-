@@ -6,10 +6,19 @@ import tailwindcss from 'tailwindcss'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // CRITICAL FIX: Explicitly configure PostCSS for Tailwind to run in the build
   css: {
     postcss: {
       plugins: [tailwindcss()],
     },
   },
+  // CRITICAL NEW FIX FOR BUILD FAILURE
+  build: {
+    rollupOptions: {
+      // Prevents bundling of packages that rely on Node globals or complex browser APIs
+      external: [
+        'buffer',
+        'process'
+      ]
+    }
+  }
 })
