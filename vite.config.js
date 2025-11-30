@@ -1,17 +1,10 @@
-// vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // CRITICAL FIX FOR TONCONNECT BUILD ERROR (Externalizes Node globals)
-  build: {
-    rollupOptions: {
-      external: [
-        'buffer',
-        'process'
-      ]
-    }
-  }
+  css: { // <-- ADD THIS CSS BLOCK
+    postcss: './postcss.config.cjs', // <-- Explicitly point to your PostCSS config file
+  },
 })
