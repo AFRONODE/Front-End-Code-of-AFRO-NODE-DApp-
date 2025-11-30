@@ -1,328 +1,202 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { TonConnectButton, useTonAddress } from '@tonconnect/ui-react';
-import { useState, useEffect } from 'react';
-import { Address } from '@ton/core';
-// Removed getHttpEndpoint as it's not strictly needed for UI presentation
+import { useTonConnectUI } from '@tonconnect/ui-react';
+import './App.css'; // assuming you have some app-specific css, otherwise remove
+import { TonConnectButton } from '@tonconnect/ui-react';
+import { useMainContract } from './hooks/useMainContract';
+import { useTonConnect } from './hooks/useTonConnect';
+// import { withTonConnect } from './hooks/withTonConnect'; // Only uncomment if you have this specific HOC
 
-// --- Ecosystem Definitions ---
-const MARKETPLACE_COLOR_DARK = 'blue-400';
-const DAO_COLOR_DARK = 'purple-400';
-const MARKETPLACE_COLOR_LIGHT = 'blue-700';
-const DAO_COLOR_LIGHT = 'purple-700';
+// === YOUR ACTUAL TONKEEPER ADMIN WALLET ADDRESS ===
+const ADMIN_WALLET_ADDRESS = "0qdfceyfiy0f5ntz4mipm_8cikamtz-36fj54ay4ilbayo4u";
+// =================================================
 
-const getColors = (isDark) => ({
-    // Backgrounds
-    BG: isDark ? 'gray-900' : 'white',
-    CARD_BG: isDark ? 'gray-800' : 'gray-100',
-    TEXT_COLOR: isDark ? 'text-white' : 'text-gray-900',
-    TEXT_MUTED: isDark ? 'text-gray-400' : 'text-gray-600',
-    
-    // Accents
-    MARKETPLACE_ACCENT: isDark ? MARKETPLACE_COLOR_DARK : MARKETPLACE_COLOR_LIGHT,
-    DAO_ACCENT: isDark ? DAO_COLOR_DARK : DAO_COLOR_LIGHT,
-    
-    // Buttons
-    BUTTON_BLUE: isDark ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-700 hover:bg-blue-800',
-    BUTTON_PURPLE: isDark ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-700 hover:bg-purple-800',
-    BUTTON_RED: isDark ? 'bg-red-600 hover:bg-red-700' : 'bg-red-700 hover:bg-red-800',
-});
-
-
-// --- Reusable Components (Styles now use isDarkMode) ---
-
-const ThemeToggleButton = ({ isDarkMode, toggleTheme }) => (
-    <button
-        onClick={toggleTheme}
-        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'bg-gray-700 text-yellow-300' : 'bg-gray-200 text-gray-800'} shadow-md`}
-        title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-    >
-        {isDarkMode ? '🌞 Light' : '🌙 Dark'}
-    </button>
-);
-
-const SectionCard = ({ title, children, color, isDarkMode }) => {
-    const colors = getColors(isDarkMode);
-    return (
-        <div className={`${colors.CARD_BG} p-6 rounded-xl shadow-xl border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <h3 className={`text-xl font-bold mb-4 text-${color}`}>{title}</h3>
-            <p className={colors.TEXT_MUTED}>{children}</p>
-        </div>
-    );
-};
-
-// --- Feature Placeholders (Updated with conditional styles) ---
-
-const Dashboard = ({ isDarkMode }) => {
-    const colors = getColors(isDarkMode);
-    return (
-        <div className={`p-8 ${colors.TEXT_COLOR} bg-${colors.BG}`}>
-            <h2 className={`text-3xl font-bold mb-6 text-${colors.MARKETPLACE_ACCENT}`}>Welcome to AFRO-NODE</h2>
-            <p className={`${colors.TEXT_MUTED} mb-8`}>Access core financial utilities and ecosystem features below.</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <SectionCard title="P2P $ANODE Transfers" color={colors.MARKETPLACE_ACCENT} isDarkMode={isDarkMode}>
-                    Initiate peer-to-peer transfers of $ANODE tokens.
-                    <button className={`mt-3 block ${colors.BUTTON_BLUE} text-white font-semibold py-2 px-4 rounded transition-colors`}>Go to Transfer</button>
-                </SectionCard>
-                
-                <SectionCard title="Staking & Yield" color="green-500" isDarkMode={isDarkMode}>
-                    Lock your $ANODE to earn staking rewards and secure the network.
-                    <button className="mt-3 block bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition-colors">Start Staking</button>
-                </SectionCard>
-            </div>
-        </div>
-    );
-};
-
-const Marketplace = ({ isDarkMode }) => {
-    const colors = getColors(isDarkMode);
-    return (
-        <div className={`p-8 ${colors.TEXT_COLOR} bg-${colors.BG}`}>
-            <h2 className={`text-3xl font-bold mb-6 text-${colors.MARKETPLACE_ACCENT}`}>Central Marketplace</h2>
-            <p className={`${colors.TEXT_MUTED} mb-8`}>Connect with talents for Blockchain AI, Web3, and Web2 services.</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <SectionCard title="Service Listings" color={colors.MARKETPLACE_ACCENT} isDarkMode={isDarkMode}>
-                    Browse or list services (Blockchain AI, Web3, Web2). Payments trigger a **10% remittance fee** upon completion.
-                    <button className={`mt-3 block ${colors.BUTTON_BLUE} text-white font-semibold py-2 px-4 rounded transition-colors`}>View Listings</button>
-                </SectionCard>
-                
-                <SectionCard title="Educational Subscriptions" color={colors.MARKETPLACE_ACCENT} isDarkMode={isDarkMode}>
-                    Access MasterClass & educational subscriptions for high-demand Web3 skills.
-                    <button className={`mt-3 block ${colors.BUTTON_BLUE} text-white font-semibold py-2 px-4 rounded transition-colors`}>Subscribe Now</button>
-                </SectionCard>
-            </div>
-        </div>
-    );
-};
-
-const HubDAO = ({ isDarkMode }) => {
-    const colors = getColors(isDarkMode);
-    return (
-        <div className={`p-8 ${colors.TEXT_COLOR} bg-${colors.BG}`}>
-            <h2 className={`text-3xl font-bold mb-6 text-${colors.DAO_ACCENT}`}>Innovation HUB DAO</h2>
-            <p className={`${colors.TEXT_MUTED} mb-8`}>Governance and job fulfillment for community talents.</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <SectionCard title="DAO Proposal System" color={colors.DAO_ACCENT} isDarkMode={isDarkMode}>
-                    Create and vote on governance proposals. Requires staked $ANODE.
-                    <button className={`mt-3 block ${colors.BUTTON_PURPLE} text-white font-semibold py-2 px-4 rounded transition-colors`}>Create Proposal</button>
-                </SectionCard>
-                
-                <SectionCard title="Talent Score Lookups" color={colors.DAO_ACCENT} isDarkMode={isDarkMode}>
-                    View verified scores and reputations of community talents. **15% remittance fee** applies to talents upon DAO Job completion.
-                    <button className={`mt-3 block ${colors.BUTTON_PURPLE} text-white font-semibold py-2 px-4 rounded transition-colors`}>Lookup Scores</button>
-                </SectionCard>
-            </div>
-        </div>
-    );
-};
-
-const AdminTools = ({ isDarkMode }) => {
-    const colors = getColors(isDarkMode);
-    return (
-        <div className={`p-8 ${colors.TEXT_COLOR} bg-${colors.BG}`}>
-            <h2 className={`text-3xl font-bold mb-6 text-red-500`}>Admin Tools (Owner Access)</h2>
-            <p className={`${colors.TEXT_MUTED} mb-8`}>Exclusive functions for $ANODE token management.</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <SectionCard title="Minting Logic ($ANODE)" color="red-500" isDarkMode={isDarkMode}>
-                    Execute the logic for minting new $ANODE tokens (Owner function).
-                    <button className={`mt-3 block ${colors.BUTTON_RED} text-white font-semibold py-2 px-4 rounded transition-colors`}>Mint Tokens</button>
-                </SectionCard>
-                
-                <SectionCard title="Airdrop $ANODE" color="red-500" isDarkMode={isDarkMode}>
-                    Distribute $ANODE tokens to a list of connected TON wallet addresses.
-                    <button className={`mt-3 block ${colors.BUTTON_RED} text-white font-semibold py-2 px-4 rounded transition-colors`}>Initiate Airdrop</button>
-                </SectionCard>
-            </div>
-        </div>
-    );
-};
-
-const MyEscrows = ({ isDarkMode }) => {
-    const colors = getColors(isDarkMode);
-    // Mock data and fee logic remains the same...
-    const mockEscrow = { assetLockedAmount: 1000, originalServiceCost: 900, serviceType: 1, state: 'FUNDS_LOCKED' };
-    const ESCROW_FEE_RATE = 0.10; 
-    const CONDITIONAL_DAO_RATE = 0.15; 
-    const CONDITIONAL_MARKETPLACE_RATE = 0.10; 
-
-    const escrowServiceFee = mockEscrow.originalServiceCost * ESCROW_FEE_RATE;
-    const conditionalRate = mockEscrow.serviceType === 1 ? CONDITIONAL_DAO_RATE : CONDITIONAL_MARKETPLACE_RATE;
-    const conditionalFee = mockEscrow.originalServiceCost * conditionalRate;
-    const totalFee = escrowServiceFee + conditionalFee;
-    const finalPayout = mockEscrow.assetLockedAmount - totalFee;
-
-    const isDaoEscrow = mockEscrow.serviceType === 1;
-    const accentColor = isDaoEscrow ? colors.DAO_ACCENT : colors.MARKETPLACE_ACCENT;
-
-    return (
-        <div className={`p-8 ${colors.TEXT_COLOR}`}>
-            <h2 className={`text-2xl font-semibold mb-4 text-${accentColor}`}>My Escrows & Dispute Resolution</h2>
-            <div className={`bg-${colors.CARD_BG} p-6 rounded-xl shadow-2xl border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                
-                <h3 className="text-xl font-bold mb-4 text-gray-400">Current Fee Policies</h3>
-                <div className={`space-y-1 p-3 border ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} rounded-md mb-6`}>
-                    <p className="text-yellow-400 font-semibold">1. Standard Escrow Fee: <span className="float-right font-mono text-lg">10%</span></p>
-                    <p>2. DAO Talent Remittance Fee: <span className={`float-right font-mono text-lg text-${colors.DAO_ACCENT}`}>15%</span></p>
-                    <p>3. Marketplace Remittance Fee: <span className={`float-right font-mono text-lg text-${colors.MARKETPLACE_ACCENT}`}>10%</span></p>
-                </div>
-                
-                <h3 className="text-xl font-medium mb-4">Escrow Details (Mock)</h3>
-                <p><strong>Service Type:</strong> <span className={`text-${accentColor}`}>{isDaoEscrow ? 'DAO Job' : 'Marketplace Task'}</span></p>
-                <p><strong>Locked Amount:</strong> {mockEscrow.assetLockedAmount} ANODE</p>
-                <p className="mb-4"><strong>Service Cost:</strong> {mockEscrow.originalServiceCost} ANODE</p>
-
-                <h4 className="text-lg font-bold mt-4 text-red-400">⚠️ Fee Calculation</h4>
-                <div className="space-y-2 mt-2 p-3 border border-red-500 rounded-md">
-                    <p>Escrow Service Fee (10%): <span className="float-right font-mono">{escrowServiceFee.toFixed(2)} ANODE</span></p>
-                    <p>Conditional Remittance Fee ({conditionalRate * 100}%): <span className="float-right font-mono">{conditionalFee.toFixed(2)} ANODE</span></p>
-                    <hr className="border-gray-600"/>
-                    <p className="font-bold">Total Fee Deduction: <span className="float-right font-mono text-red-400">{totalFee.toFixed(2)} ANODE</span></p>
-                    <hr className="border-gray-600"/>
-                    <p className="font-extrabold text-green-400 text-lg">Final Payout (Net): <span className="float-right font-mono">{finalPayout.toFixed(2)} ANODE</span></p>
-                </div>
-
-                {mockEscrow.state === 'FUNDS_LOCKED' && (
-                    <div className="mt-6 flex space-x-3">
-                        <button className={`${colors.BUTTON_BLUE} text-white font-semibold rounded-lg px-4 py-2 transition-colors`}>OP_RELEASE</button>
-                        <button className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg px-4 py-2 transition-colors">OP_REFUND</button>
-                        <button className="bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg px-4 py-2 transition-colors">OP_DISPUTE</button>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-// --- End Feature Placeholders ---
-
-const useWalletData = () => {
-    const userFriendlyAddress = useTonAddress();
-    const isConnected = !!userFriendlyAddress;
-    const [balances, setBalances] = useState({ ton: '0.00', anode: '0.00' });
-    const [isAdmin, setIsAdmin] = useState(false);
-    
-    useEffect(() => {
-        const mockOwnerAddress = 'UQDXC1erzS2fub_CNmkdH1A3hRs6xMDrWBmOD2yQOZjRuruv'; 
-        // Admin status relies on connection and matching the mock owner address
-        if (isConnected && userFriendlyAddress === mockOwnerAddress) {
-            setIsAdmin(true);
-        } else {
-            setIsAdmin(false);
-        }
-        if (isConnected) {
-             setBalances({ ton: '15.42', anode: '875.00' });
-        } else {
-             setBalances({ ton: '0.00', anode: '0.00' });
-        }
-    }, [userFriendlyAddress, isConnected]);
-    return { ...balances, isConnected, userFriendlyAddress, isAdmin };
-};
-
-const shortenAddress = (address) => {
-    if (!address) return 'N/A';
-    return Address.isFriendly(address) ? address.slice(0, 4) + '...' + address.slice(-4) : 'Invalid Address';
-};
-
-// --- Header Component ---
-const Header = ({ tonBalance, anodeBalance, userFriendlyAddress, isConnected, isDarkMode, toggleTheme }) => {
-    const colors = getColors(isDarkMode);
-    return (
-        <header className={`flex justify-between items-center p-4 ${colors.CARD_BG} shadow-xl sticky top-0 z-10 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <div className="flex items-center space-x-3">
-                <img 
-                    src="/afro-node-logo.png" 
-                    alt="AFRO-NODE Logo" 
-                    className="h-8 w-8"
-                    onError={(e) => { e.target.onerror = null; e.target.src="/vite.svg" }}
-                />
-                <h1 className={`text-2xl font-extrabold text-${colors.MARKETPLACE_ACCENT}`}>AFRO-NODE DApp</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-                <ThemeToggleButton isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
-                {isConnected && (
-                    <div className={`text-sm ${colors.TEXT_MUTED} ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} p-2 rounded-lg font-mono`}>
-                        <p>Address: <span className={`text-xs text-${colors.MARKETPLACE_ACCENT}`}>{shortenAddress(userFriendlyAddress)}</span></p>
-                        <p>TON: <span className="font-semibold">{tonBalance}</span> | ANODE: <span className="font-semibold">{anodeBalance}</span></p>
-                    </div>
-                )}
-                <TonConnectButton />
-            </div>
-        </header>
-    );
-};
-
-// --- Navigation Links ---
-const Navigation = ({ isAdmin, isDarkMode }) => {
-    const colors = getColors(isDarkMode);
-    const baseClass = "px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200";
-    const defaultColor = isDarkMode ? 'text-gray-300' : 'text-gray-600';
-
-    const getLinkClass = (to) => {
-        let hoverClass = '';
-        if (to === "/marketplace") hoverClass = isDarkMode ? 'hover:bg-blue-600 hover:text-white' : 'hover:bg-blue-100 hover:text-blue-700';
-        else if (to === "/dao") hoverClass = isDarkMode ? 'hover:bg-purple-600 hover:text-white' : 'hover:bg-purple-100 hover:text-purple-700';
-        else hoverClass = isDarkMode ? 'hover:bg-gray-700 hover:text-blue-400' : 'hover:bg-gray-200 hover:text-blue-700';
-
-        return `${defaultColor} ${hoverClass} ${baseClass}`;
-    };
-
-    return (
-        <nav className={`bg-${colors.CARD_BG} shadow-inner border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-14">
-                    <div className="flex items-center space-x-4">
-                        <Link to="/" className={getLinkClass("/")}>Dashboard/Wallet</Link>
-                        <Link to="/marketplace" className={getLinkClass("/marketplace")}>Marketplace</Link>
-                        <Link to="/dao" className={getLinkClass("/dao")}>Innovation HUB DAO</Link>
-                        <Link to="/escrows" className={getLinkClass("/escrows")}>My Escrows</Link>
-                        {/* ADMIN LINK ONLY APPEARS IF ADMIN STATUS IS TRUE */}
-                        {isAdmin && <Link to="/admin" className={getLinkClass("/admin")}>Admin Tools</Link>}
-                    </div>
-                </div>
-            </div>
-        </nav>
-    );
-};
-
-// --- Main App Component ---
 function App() {
-    const { ton: tonBalance, anode: anodeBalance, userFriendlyAddress, isConnected, isAdmin } = useWalletData();
-    const [isDarkMode, setIsDarkMode] = useState(true); // Start in Dark Mode
-    const colors = getColors(isDarkMode);
+  const { connected } = useTonConnect();
+  const {
+    contract_address,
+    counter_value,
+    jetton_balance,
+    sendIncrement,
+    sendDeposit,
+    sendWithdraw,
+    sendMint,
+    sendAirdrop
+  } = useMainContract();
+  const [tonConnectUI] = useTonConnectUI();
 
-    const toggleTheme = () => setIsDarkMode(prev => !prev);
+  // Check if the currently connected wallet is the admin wallet
+  const connectedAddress = tonConnectUI?.account?.address;
+  const isAdmin = connected && connectedAddress === ADMIN_WALLET_ADDRESS;
 
-    return (
-        <Router>
-            {/* The main container controls the global theme class */}
-            <div className={`min-h-screen bg-${colors.BG}`}> 
-                <Header 
-                    tonBalance={tonBalance} 
-                    anodeBalance={anodeBalance} 
-                    userFriendlyAddress={userFriendlyAddress} 
-                    isConnected={isConnected} 
-                    isDarkMode={isDarkMode}
-                    toggleTheme={toggleTheme}
-                />
-                <Navigation isAdmin={isAdmin} isDarkMode={isDarkMode} />
-                <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                    <Routes>
-                        <Route path="/" element={<Dashboard isDarkMode={isDarkMode} />} />
-                        <Route path="/marketplace" element={<Marketplace isDarkMode={isDarkMode} />} />
-                        <Route path="/dao" element={<HubDAO isDarkMode={isDarkMode} />} />
-                        <Route path="/escrows" element={<MyEscrows isDarkMode={isDarkMode} />} />
-                        <Route 
-                            path="/admin" 
-                            element={isAdmin ? <AdminTools isDarkMode={isDarkMode} /> : <Navigate to="/" replace />} 
-                        /> 
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </main>
+  const displayAddress = contract_address
+    ? contract_address.slice(0, 4) + "..." + contract_address.slice(-4)
+    : "Loading...";
+
+  // Placeholder functions for new features (no actual logic here yet)
+  const navigateToMarketplace = () => alert("Navigating to Central Marketplace...");
+  const navigateToEscrow = () => alert("Navigating to Escrow...");
+  const navigateToDAO = () => alert("Navigating to Innovation Hub DAO...");
+  const navigateToStaking = () => alert("Navigating to ANODE Staking...");
+  const navigateToP2PTransfer = () => alert("Navigating to P2P ANODE Transfer...");
+  const createDaoProposal = () => alert("Creating DAO proposal for talents...");
+
+  // Example marketplace items for demonstration
+  const marketplaceItems = [
+    { id: 1, title: "Web3 DApp Development Masterclass", category: "Web3", price: "200 $ANODE" },
+    { id: 2, title: "AI-Powered Smart Contract Audits", category: "AI", price: "Flexible" },
+    { id: 3, title: "Blockchain Security Consultation", category: "Blockchain", price: "150 $ANODE/hr" },
+    { id: 4, title: "Custom Web2 Frontend Development", category: "Web2", price: "Starts at 500 $ANODE" },
+  ];
+
+  return (
+    <div className="app-container p-4 bg-anode-dark min-h-screen text-white font-sans">
+      <div className="header flex justify-between items-center mb-8">
+        <img src="/afro-node-logo.png" alt="AFRO-NODE Logo" className="h-12" /> {/* Absolute path for logo */}
+        <TonConnectButton />
+      </div>
+
+      {/* Main DApp Card - Existing Functionality */}
+      <div className="card bg-anode-bg p-6 rounded-lg shadow-lg mb-8">
+        <h2 className="text-2xl font-bold mb-4 text-anode-primary">AFRO-NODE DApp Core</h2>
+        <p className="text-anode-text mb-2">
+          Contract Address: <code className="text-anode-primary-light">{displayAddress}</code>
+        </p>
+        <p className="text-anode-text mb-2">
+          Counter Value: <span className="font-semibold text-anode-accent">{counter_value ?? "Loading..."}</span>
+        </p>
+        <p className="text-anode-text mb-4">
+          Your Jetton Balance: <span className="font-semibold text-anode-accent">{jetton_balance ?? "Loading..."}</span>
+        </p>
+
+        <div className="actions space-y-4">
+          <button
+            onClick={sendIncrement}
+            className={`btn bg-anode-primary hover:bg-anode-primary/80 text-white font-bold py-2 px-4 rounded w-full transition-colors duration-200 ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!connected}
+          >
+            Increment Counter
+          </button>
+          <button
+            onClick={sendDeposit}
+            className={`btn bg-anode-secondary hover:bg-anode-secondary/80 text-white font-bold py-2 px-4 rounded w-full transition-colors duration-200 ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!connected}
+          >
+            Deposit 2 TON
+          </button>
+          <button
+            onClick={sendWithdraw}
+            className={`btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded w-full transition-colors duration-200 ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!connected}
+          >
+            Withdraw 1 TON
+          </button>
+        </div>
+      </div>
+
+      {/* New: Core AFRO-NODE DApp Features Navigation */}
+      <div className="features-card bg-anode-bg p-6 rounded-lg shadow-lg mb-8">
+        <h3 className="text-xl font-bold mb-4 text-anode-primary">Core AFRO-NODE Features</h3>
+        <div className="feature-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            onClick={navigateToMarketplace}
+            className="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded text-lg transition-colors duration-200"
+          >
+            🌐 Central Marketplace
+          </button>
+          <button
+            onClick={navigateToEscrow}
+            className="btn bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded text-lg transition-colors duration-200"
+          >
+            🔒 Escrow Services + Calculator
+          </button>
+          <button
+            onClick={navigateToDAO}
+            className="btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded text-lg transition-colors duration-200"
+          >
+            💡 Innovation Hub DAO
+          </button>
+          <button
+            onClick={navigateToP2PTransfer}
+            className="btn bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded text-lg transition-colors duration-200"
+          >
+            ↔️ P2P $ANODE Transfer
+          </button>
+          <button
+            onClick={navigateToStaking}
+            className="btn bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded text-lg transition-colors duration-200"
+          >
+            🌱 $ANODE Staking
+          </button>
+          <button
+            onClick={createDaoProposal}
+            className="btn bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-4 rounded text-lg transition-colors duration-200"
+          >
+            🗳️ DAO Proposal: African Tech Talents
+          </button>
+        </div>
+      </div>
+
+      {/* New: Dedicated Marketplace Listings Section */}
+      <div className="marketplace-listings-card bg-anode-bg p-6 rounded-lg shadow-lg mb-8">
+        <h3 className="text-xl font-bold mb-4 text-anode-primary">Marketplace Listings</h3>
+        <p className="text-anode-text mb-4">
+          Browse various Blockchain, AI, Web3, and Web2 services, alongside Masterclass Educational Subscriptions.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {marketplaceItems.map(item => (
+            <div key={item.id} className="bg-anode-dark p-4 rounded shadow">
+              <h4 className="font-semibold text-anode-accent">{item.title}</h4>
+              <p className="text-sm text-anode-text">Category: {item.category}</p>
+              <p className="text-sm text-anode-text">Price: {item.price}</p>
+              <button className="mt-2 bg-anode-primary text-white text-xs px-3 py-1 rounded hover:bg-anode-primary/80">
+                View Details
+              </button>
             </div>
-        </Router>
-    );
+          ))}
+        </div>
+      </div>
+
+
+      {/* Remittance and Fee Structure Display */}
+      <div className="fees-card bg-anode-bg p-6 rounded-lg shadow-lg mb-8">
+        <h3 className="text-xl font-bold mb-4 text-anode-primary">Fee & Remittance Structure</h3>
+        <ul className="list-disc list-inside text-anode-text space-y-2">
+          <li>
+            <span className="font-semibold text-anode-accent">10% Escrow Fee:</span> Applied to all escrowed transactions.
+          </li>
+          <li>
+            <span className="font-semibold text-anode-accent">10% Remittance:</span> From payments for general tasks completed by users in the Central Marketplace.
+          </li>
+          <li>
+            <span className="font-semibold text-anode-accent">15% Remittance:</span> From payments to talents approved by the DAO.
+          </li>
+        </ul>
+      </div>
+
+      {/* Admin Tools - Conditionally Rendered */}
+      {isAdmin && (
+        <div className="admin-card bg-anode-bg p-6 rounded-lg shadow-lg">
+          <h3 className="text-xl font-bold mb-4 text-anode-primary">Admin Tools (Owner)</h3>
+          <div className="admin-actions space-y-4">
+            <button
+              onClick={sendMint}
+              className={`btn bg-anode-mint hover:bg-anode-mint/80 text-white font-bold py-2 px-4 rounded w-full transition-colors duration-200 ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!connected}
+            >
+              Mint 1000 $ANODE Tokens
+            </button>
+            <button
+              onClick={sendAirdrop}
+              className={`btn bg-anode-airdrop hover:bg-anode-airdrop/80 text-white font-bold py-2 px-4 rounded w-full transition-colors duration-200 ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!connected}
+            >
+              Airdrop 500 $ANODE Tokens
+            </button>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
 }
 
 export default App;
