@@ -3,27 +3,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Apply global styles with @apply */
+/* apply global styles with apply */
 body {
-  @apply bg-anode-dark text-white font-sans; /* Assuming font-sans is defined in tailwind.config.js */
+  @apply bg-anode-dark text-white font-sans; /* Apply Tailwind utilities here */
 }
 
-/* Custom styles for modern input fields */
+/* custom styles for modern input fields */
 input[type="text"],
 input[type="number"],
-textarea { /* Removed trailing > */
-  @apply bg-anode-bg border border-anode-primary/50 text-anode-text p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-anode-primary; /* Corrected @apply syntax and added more styles for better UX */
+textarea {
+  @apply bg-anode-bg border border-anode-primary/50; /* Removed trailing > */
 }
 
-/* Custom button base style */
+/* custom button base style */
 button {
-  @apply bg-anode-primary hover:bg-anode-primary/80 text-white font-bold py-2 px-4 rounded transition-colors duration-200; /* Corrected @apply syntax and hover value */
+  @apply bg-anode-primary hover:bg-anode-primary/80; /* Removed trailing > */
 }
 
-/* You might want to define specific button classes in tailwind.config.js or directly in App.jsx */
-/* For example, for a "btn" class: */
+/* you might want to define specific button classes */
+/* for example, for a "btn" class: */
 /*
 .btn {
-  @apply bg-anode-primary hover:bg-anode-primary/80 text-white font-bold py-2 px-4 rounded transition-colors duration-200;
+  @apply bg-anode-primary hover:bg-anode-primary/80; // Removed trailing >
 }
 */
