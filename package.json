@@ -12,9 +12,11 @@
     "@orbs-network/ton-access": "^2.3.3",
     "@ton/ton": "^13.8.0",
     "@tonconnect/ui-react": "^2.3.1",
+    "buffer": "^6.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.30.2"
+    "react-router-dom": "^6.30.2",
+    "rollup-plugin-node-polyfills": "^0.2.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",

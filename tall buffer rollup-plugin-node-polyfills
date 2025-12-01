@@ -1,0 +1,10 @@
+* [33m3001591[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Fix Netlify build error: Added missing useAsyncInitialize.js hook
+* [33m6c105ba[m feat(deps): Added missing @orbs-network/ton-access dependency and updated lock file.
+* [33mfd65605[m fix(code): Removed duplicate useAsyncInitialize definition to fix Rollup build error.
+* [33m483f44c[m feat(final): Added missing src/hooks directory and code to complete project structure and resolve build error.
+* [33m6c29fa8[m feat(final): Added missing src/hooks directory and boilerplate code to resolve module resolution error and complete frontend project structure.
+* [33m56247eb[m feat(final): Deleted duplicate files from root and added the missing src/hooks directory to resolve all module resolution errors.
+* [33m0ca41a4[m fix(final): Final structural and code cleanup, including admin wallet and removing all redundant/missing file references to fix build.
+* [33me0f62af[m fix(tailwind): Explicitly defined custom colors in tailwind.config.js and removed all trailing syntax errors from src/index.css.
+* [33mfbb8269[m fix(netlify): Downgraded Tailwind CSS to v3.x and re-configured PostCSS to recommended object format for compatibility. Final attempt with known stable versions.
+* [33m99e71e7[m fix(netlify): Removed postcss.config.cjs and moved PostCSS plugin definition directly into tailwind.config.js as a final attempt to resolve persistent build error.
