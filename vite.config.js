@@ -5,6 +5,6 @@ import react from '@vitejs/plugin-react' // Corrected: @vitejs/plugin-react
 export default defineConfig({
   plugins: [react()],
   css: {
-    postcss: './postcss.config.cjs', // Removed trailing >
+    postcss: './postcss.config.cjs', // Removed trailing > and confirmed path
   },
 })
