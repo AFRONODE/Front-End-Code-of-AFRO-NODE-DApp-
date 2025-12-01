@@ -8,29 +8,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        'anode-dark': '#0f172a',
-        'anode-bg': '#1e293b',
-        'anode-primary': '#0284c7',
-        'anode-primary-light': '#38bdf8',
-        'anode-secondary': '#16a34a',
-        'anode-accent': '#fcd34d',
-        'anode-text': '#cbd5e1',
-        'anode-mint': '#7e22ce',
-        'anode-airdrop': '#be185d',
+        // ... your custom colors ...
       },
       fontFamily: {
-        sans: ['"Inter"', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+        // ... your font family ...
       }
     },
   },
   plugins: [],
-  // --- ADD THIS POSTCSS CONFIGURATION BLOCK ---
-  postcss: {
-    plugins: [
-      require('tailwindcss'),
-      require('autoprefixer'),
-    ],
-  },
-  // --- END ADDITION ---
+  // Ensure there is NO 'postcss' block here
 }
-
