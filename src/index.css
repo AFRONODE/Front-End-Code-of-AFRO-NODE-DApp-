@@ -8,19 +8,19 @@ body {
   @apply bg-anode-dark text-white font-sans;
 }
 
-/* Custom styles for modern input fields */
-input[type="text"],
-input[type="number"],
-textarea {
-  @apply bg-anode-bg border border-anode-primary/50 text-anode-text p-3 rounded-lg;
-}
-
 /* Custom button base style for re-use */
 .btn {
   @apply py-3 px-6 rounded-xl font-bold transition-colors duration-200 ease-in-out;
 }
 
-/* Base button elements */
+/* Base elements that should use the btn style */
 button {
-  @apply btn bg-anode-primary hover:bg-anode-primary-light;
+  @apply btn;
+}
+
+/* Custom styles for modern input fields */
+input[type="text"],
+input[type="number"],
+textarea {
+  @apply bg-anode-bg border border-anode-primary/50 text-anode-text p-3 rounded-lg;
 }
