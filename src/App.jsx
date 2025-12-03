@@ -1,7 +1,7 @@
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { TonConnectButton } from '@tonconnect/ui-react';
-import { useMainContract } from './hooks/useMainContract'; // Still import it, but won't call it
-import { useTonConnect } from './hooks/useTonConnect'; // Still import it, but won't call it
+import { useMainContract } from './hooks/useMainContract';
+import { useTonConnect } from './hooks/useTonConnect';
 // import { withTonConnect } from './hooks/withTon>
 
 // === YOUR ACTUAL TONKEEPER ADMIN WALLET ADDRESS (Testnet) ===
@@ -10,37 +10,31 @@ const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
 // ==========================================================
 
 function App() {
-  // ----------------------------------------------------
-  // TEMPORARILY DISABLED CUSTOM HOOKS FOR CRASH ISOLATION
-  // ----------------------------------------------------
-  const connected = true; // Placeholder for useTonConnect().connected
+  const { connected } = useTonConnect();
   
-  // Placeholders for variables returned by useMainContract()
-  const contract_address = "EQDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
-  const counter_value = 100;
-  const jetton_balance = 5000;
-  
-  // Placeholders for functions returned by useMainContract()
-  const sendIncrement = () => alert("Increment Placeholder");
-  const sendDeposit = () => alert("Deposit Placeholder");
-  const sendWithdraw = () => alert("Withdraw Placeholder");
-  const sendMint = () => alert("Mint Placeholder");
-  const sendAirdrop = () => alert("Airdrop Placeholder");
-  
-  // Safely call useTonConnectUI, as it's an official library hook
-  // We'll use this output to check the connected address safely
-  const [tonConnectUI] = useTonConnectUI() || []; 
-  // ----------------------------------------------------
+  // CRITICAL FIX: Safely destructure useMainContract with an empty object fallback.
+  const {
+    contract_address,
+    counter_value,
+    jetton_balance,
+    sendIncrement,
+    sendDeposit,
+    sendWithdraw,
+    sendMint,
+    sendAirdrop
+  } = useMainContract() || {}; 
 
+  // CRITICAL FIX FOR ERROR: Use TonConnectUI directly. The hook returns an array,
+  // but we must use optional chaining on the 'tonConnectUI' object later for safety.
+  const [tonConnectUI] = useTonConnectUI(); // CRASH FIX: Removed "|| []" as it interferes with React hook guarantees.
 
   // Check if the currently connected wallet is the Admin wallet
-  // This line is safe because tonConnectUI is checked with a safe default
+  // CRASH FIX: Used optional chaining (?.) to safely access nested properties.
   const connectedAddress = tonConnectUI?.account?.address;
   const isAdmin = connected && connectedAddress === ADMIN_WALLET_ADDRESS;
 
-  // --- CRITICAL NULL/LOADING CHECK (No longer needed, but harmless) ---
-  // The value is hardcoded, so it will always skip the loading screen.
-  // We keep the loading screen return block structure, but it won't be hit.
+  // --- CRITICAL NULL/LOADING CHECK ---
+  // If contract_address (which relies on useMainContract) is missing, render a loading state.
   if (!contract_address) {
     return (
       <div className="app-container p-4 bg-anode-dark min-h-screen flex flex-col items-center justify-center">
@@ -54,7 +48,7 @@ function App() {
   // Since contract_address is guaranteed to exist here, displayAddress is safe.
   const displayAddress = contract_address
     ? contract_address.slice(0, 4) + "..." + contract_address.slice(-4)
-    : "Loading..."; 
+    : "Loading..."; // This line is now only reached if contract_address is defined
 
   // Placeholder functions for new features (no actual functionality)
   const navigateToMarketplace = () => alert("Navigating to Central Marketplace.");
@@ -199,7 +193,7 @@ function App() {
       {isAdmin && (
         <div className="admin-card bg-anode-bg p-6 rounded-xl shadow-lg border-2 border-anode-secondary">
           <h3 className="text-xl font-bold mb-4 text-red-500">ADMIN TOOLS</h3>
-          <p className="text-anode-text mb-4">Admin wallet **{connectedAddress?.slice(0, 8) || 'N/A'}...** detected. Mint and Airdrop functions available.</p>
+          <p className="text-anode-text mb-4">Admin wallet **{connectedAddress.slice(0, 8)}...** detected. Mint and Airdrop functions available.</p>
           <div className="admin-actions space-y-4">
             <button
               onClick={sendMint}
