@@ -6,7 +6,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills';
 export default defineConfig({
   plugins: [
     react(),
-    // Use the robust nodePolyfills plugin
+    // Use the robust nodePolyfills plugin to handle Node globals
     nodePolyfills({
       include: ['buffer', 'process', 'util', 'stream'],
       globals: {
@@ -16,20 +16,9 @@ export default defineConfig({
       protocolImports: true,
     }),
   ],
-  build: {
-    rollupOptions: {
-      // EXTERNALIZE CRITICAL LIBRARIES
-      external: ['@ton/ton', '@orbs-network/ton-access'],
-      output: {
-        // Essential to prevent internal Node modules from being incorrectly bundled
-        globals: {
-          '@ton/ton': 'Ton',
-          '@orbs-network/ton-access': 'TonAccess',
-        },
-      },
-    },
-  },
+  // The 'build' block has been removed to stop externalization and fix the module resolution error.
   define: {
+    // Keeps process.env from crashing inside the bundled libraries
     'process.env': {}
   }
 });
