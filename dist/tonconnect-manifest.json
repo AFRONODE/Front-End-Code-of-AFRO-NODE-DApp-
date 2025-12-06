@@ -1,7 +1,7 @@
 {
   "url": "https://afro-nodedapp.netlify.app",
   "name": "AFRO-NODE DApp",
-  "iconUrl": "https://afro-nodedapp.netlify.app/afro-node-logo.png",
-  "termsOfUseUrl": "https://afro-nodedapp.netlify.app/terms.html",
-  "privacyPolicyUrl": "https://afro-nodedapp.netlify.app/privacy.html"
+  "iconUrl": "https://afro-nodedapp.netlify.app/favicon.png",
+  "termsOfUseUrl": "https://afro-nodedapp.netlify.app/terms-of-use.html",
+  "privacyPolicyUrl": "https://afro-nodedapp.netlify.app/privacy-policy.html"
 }
