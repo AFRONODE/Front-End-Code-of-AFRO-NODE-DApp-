@@ -72,10 +72,34 @@ function App() {
 
   return (
     <div className="app-container p-4 bg-anode-dark min-h-screen">
-      <div className="header flex justify-between items-center mb-6">
-        <img src="/afro-node-logo.png" alt="AFRO-NODE DApp" className="h-10" />
-        <TonConnectButton />
+      
+      {/* HEADER: Logos and Connect Button (UPDATED) */}
+      <div className="header flex justify-between items-center mb-6" style={{display: 'flex', alignItems: 'center', padding: '10px'}}>
+        
+        {/* AFRO-NODE DApp Logo - FIXED PATH */}
+        <img 
+            src="/afro-node-logo.png/Screenshot_20250607-124053.jpg" 
+            alt="AFRO-NODE DApp Logo" 
+            className="h-10" 
+            style={{height: '50px', marginRight: '20px'}}
+        />
+
+        <h1 className="text-2xl font-bold text-white hidden md:block">AFRO-NODE DApp</h1>
+        
+        {/* $ANODE Token Logo - FIXED PATH */}
+        <img 
+            src="/anode-token.png/1764785319748~2_1.jpg" 
+            alt="$ANODE Token Logo" 
+            className="h-10"
+            style={{height: '50px', marginLeft: '20px'}}
+        />
+        
+        {/* Connect Button - Pushed to the right */}
+        <div style={{marginLeft: 'auto'}}>
+            <TonConnectButton />
+        </div>
       </div>
+      {/* END HEADER */}
 
       {/* Main DApp Card - Existing Functionality (Counter/Deposit) */}
       <div className="card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
