@@ -1,11 +1,11 @@
 // vite.config.js
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react'; // <--- CRUCIAL: Make sure this line is here
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import react from '@vitejs/plugin-react'; // <--- CRITICAL: React plugin import
+import { nodePolyfills } from 'vite-plugin-node-polyfills'; // <--- Polyfills import
 
 export default defineConfig({
   plugins: [
-    react(), // <--- This function call requires the import above
+    react(), // <--- React plugin
     nodePolyfills({
       include: ['buffer', 'process', 'util', 'stream'],
       globals: {
@@ -15,7 +15,8 @@ export default defineConfig({
       protocolImports: true,
     }),
   ],
-  base: '/Front-End-Code-of-AFRO-NODE-DApp-/', // Added for GitHub Pages
+  // FIX: Changing base path to '/' for Netlify/root deployment
+  base: '/', 
   define: {
     'process.env': {}
   }
