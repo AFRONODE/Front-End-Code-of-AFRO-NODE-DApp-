@@ -15,8 +15,9 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
-// 1. ADD NEW IMPORT: Network is needed for configuration
-import { TonConnectUIProvider, Network } from '@tonconnect/ui-react'; 
+// 1. IMPORT FIX: TonConnectUIProvider is here, but Network moved to the SDK package.
+import { TonConnectUIProvider } from '@tonconnect/ui-react'; 
+import { Network } from '@tonconnect/sdk'; // <--- FIX: Network imported from the correct SDK package
 
 // === TON CONNECT MANIFEST URL SETUP ===
 const manifestUrl = "/tonconnect-manifest.json";
@@ -24,10 +25,10 @@ const manifestUrl = "/tonconnect-manifest.json";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* 2. ADD FINAL FIX: Force the entire provider to use the Testnet network definition. */}
+    {/* 2. FINAL CONFIG: Force the Testnet network definition. */}
     <TonConnectUIProvider 
       manifestUrl={manifestUrl}
-      network={Network.TESTNET} // <--- FINAL DEFINITIVE FIX!
+      network={Network.TESTNET} // <--- CORRECTLY USING Network from the SDK
     >
       <App />
     </TonConnectUIProvider>

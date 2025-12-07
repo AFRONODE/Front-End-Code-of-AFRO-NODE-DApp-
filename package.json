@@ -1,7 +1,7 @@
 {
   "name": "afro-node-frontend",
   "version": "0.1.0",
-  "homepage": "https://AFRONODE.github.io/Front-End-Code-of-AFRO-NODE-DApp-", 
+  "homepage": "https://AFRONODE.github.io/Front-End-Code-of-AFRO-NODE-DApp-",
   "engines": {
     "node": "20.x"
   },
@@ -11,14 +11,15 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "predeploy": "npm run build", 
-    "deploy": "gh-pages -d dist" 
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.2",
     "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@orbs-network/ton-access": "^2.3.3",
     "@ton/ton": "^13.8.0",
+    "@tonconnect/sdk": "^3.3.1",
     "@tonconnect/ui-react": "^2.3.1",
     "buffer": "^6.0.3",
     "react": "^18.2.0",
