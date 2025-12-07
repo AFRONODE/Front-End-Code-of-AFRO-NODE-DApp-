@@ -1,17 +1,28 @@
-// src/hooks/useTonClient.jsx
-import { TonClient } from "@ton/ton";
-import { useMemo } from "react";
+// src/hooks/useTonClient.jsx (FINAL & COMPLETE)
 
-// The hook to initialize and expose the guaranteed TON Testnet client connection.
+import { TonClient } from "@ton/ton";
+import { getHttpEndpoint } from "@ton/ton-access"; 
+import { useMemo, useEffect, useState } from "react";
+
 export function useTonClient() {
-  const client = useMemo(() => {
-    // ULTRA-FIX: Explicitly and unconditionally set the endpoint to the Testnet RPC URL.
-    // This bypasses any connection conflicts defaulting to Masterchain (-3).
-    return new TonClient({
-      endpoint: "https://testnet.toncenter.com/api/v2/jsonRPC", 
-      apiKey: "f077d337d1d2797e59f4f464d2d41b59c73562477c7f66a22c5478470a7b1b36", 
-    });
-  }, []); // Empty dependency array ensures it runs only once and immediately.
+  const [client, setClient] = useState(null);
+
+  useEffect(() => {
+    async function initClient() {
+        try {
+            // Force Ton Access to find a healthy Testnet endpoint
+            const endpoint = await getHttpEndpoint({ network: "testnet" }); 
+
+            // Use the healthy endpoint to create the client
+            const tonClient = new TonClient({ endpoint });
+            setClient(tonClient);
+
+        } catch (error) {
+            console.error("FATAL: Failed to initialize TonClient using ton-access.", error);
+        }
+    }
+    initClient();
+  }, []); 
 
   return { client };
 }
