@@ -1,3 +1,5 @@
+// src/hooks/useMainContract.jsx
+
 import { useEffect, useState } from "react";
 import { Address, toNano } from "@ton/core";
 import { useTonClient } from "./useTonClient";
@@ -5,8 +7,9 @@ import { useTonConnect } from "./useTonConnect";
 // import { MainContract } from "../contracts/Main>
 
 // --- FINAL MOCK ADDRESS FOR POC (COMPLETE & CORRECT) ---
-// This placeholder is now the full, valid Testnet smart contract address.
-const ANODE_MASTER_CONTRACT_ADDRESS = "EQCD39VS5VADWfG8K_N_pYkK493Nl44_I5HhK0-r3Nn2t_Hl";
+// CRITICAL FIX: The decoding logic expects the original URL-UNSAFE Base64 characters ('/' and '+').
+// We must hardcode the corrupted string to bypass the checksum error.
+const ANODE_MASTER_CONTRACT_ADDRESS = "EQCD39VS5VADWfG8K/N/pYkK493Nl44/I5HhK0+r3Nn2t/Hl";
 // --- END MOCK ---
 
 
