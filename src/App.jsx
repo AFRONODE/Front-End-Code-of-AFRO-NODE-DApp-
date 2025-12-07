@@ -1,8 +1,10 @@
+// src/App.jsx
+
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { TonConnectButton } from '@tonconnect/ui-react';
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
-// import { withTonConnect } from './hooks/withTon>
+// FINAL BUILD BUSTER 1.0 - Triggering recompile of hook dependencies.
 
 // === YOUR ACTUAL TONKEEPER ADMIN WALLET ADDRESS (Testnet) ===
 // This address is used to conditionally render Mint/Airdrop buttons
@@ -12,7 +14,8 @@ const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
 function App() {
   const { connected } = useTonConnect();
   
-  // CRITICAL FIX: Safely destructure useMainContract with an empty object fallback.
+  // CRITICAL FIX: Destructure safely by providing an empty object default (|| {})
+  // This prevents the TypeError if useMainContract returns undefined/null initially.
   const {
     contract_address,
     counter_value,
@@ -24,31 +27,32 @@ function App() {
     sendAirdrop
   } = useMainContract() || {}; 
 
-  // CRITICAL FIX FOR ERROR: Use TonConnectUI directly. The hook returns an array,
-  // but we must use optional chaining on the 'tonConnectUI' object later for safety.
-  const [tonConnectUI] = useTonConnectUI(); // CRASH FIX: Removed "|| []" as it interferes with React hook guarantees.
+  // CRITICAL FIX FOR ERROR: Access the TonConnectUI client directly.
+  // The error occurs if the client is undefined when we try to access nested properties later.
+  const [tonConnectUI] = useTonConnectUI(); 
 
   // Check if the currently connected wallet is the Admin wallet
-  // CRASH FIX: Used optional chaining (?.) to safely access nested properties.
+  // CRASH FIX: Used optional chaining (?.) to safely access nested properties, preventing the TypeError.
   const connectedAddress = tonConnectUI?.account?.address;
   const isAdmin = connected && connectedAddress === ADMIN_WALLET_ADDRESS;
 
-  // --- CRITICAL NULL/LOADING CHECK ---
-  // If contract_address (which relies on useMainContract) is missing, render a loading state.
+  // --- FINAL CRITICAL LOADING CHECK ---
+  // If contract_address is missing (initial load or error in custom hook), render a simple loading state.
   if (!contract_address) {
     return (
       <div className="app-container p-4 bg-anode-dark min-h-screen flex flex-col items-center justify-center">
         <h2 className="text-3xl font-bold text-anode-primary">Initializing DApp...</h2>
         <p className="text-anode-text mt-2">Connecting to TON network and loading contract data.</p>
+        <p className="text-anode-text mt-1">If this persists, check network status or refresh the page.</p>
       </div>
     );
   }
-  // --- END CRITICAL NULL/LOADING CHECK ---
+  // --- END FINAL CRITICAL LOADING CHECK ---
 
   // Since contract_address is guaranteed to exist here, displayAddress is safe.
   const displayAddress = contract_address
     ? contract_address.slice(0, 4) + "..." + contract_address.slice(-4)
-    : "Loading..."; // This line is now only reached if contract_address is defined
+    : "Loading...";
 
   // Placeholder functions for new features (no actual functionality)
   const navigateToMarketplace = () => alert("Navigating to Central Marketplace.");
