@@ -1,16 +1,22 @@
 // vite.config.js
 import { defineConfig } from 'vite';
-// ... (imports)
+import react from '@vitejs/plugin-react'; // <--- CRUCIAL: Make sure this line is here
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
   plugins: [
-    react(),
-    // ... (nodePolyfills plugin)
+    react(), // <--- This function call requires the import above
+    nodePolyfills({
+      include: ['buffer', 'process', 'util', 'stream'],
+      globals: {
+        Buffer: true,
+        process: true,
+      },
+      protocolImports: true,
+    }),
   ],
-  base: '/Front-End-Code-of-AFRO-NODE-DApp-/', // <--- ADD THIS LINE HERE
-  // The 'build' block has been removed to stop ex>
+  base: '/Front-End-Code-of-AFRO-NODE-DApp-/', // Added for GitHub Pages
   define: {
-    // Keeps process.env from crashing inside the >
     'process.env': {}
   }
 });
