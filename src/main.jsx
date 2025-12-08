@@ -1,7 +1,6 @@
-// src/main.jsx (FINAL & COMPLETE)
+// src/main.jsx (ABSOLUTELY FINAL VERSION)
 
 // --- CRITICAL GLOBAL POLYFILL INJECTION ---
-// These ensure Node.js compatibility in a browser environment (Vite/React)
 import 'whatwg-fetch';
 import { Buffer } from 'buffer';
 window.Buffer = Buffer;
@@ -13,9 +12,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
-// FIX: Import Network from the correct, successfully installed package: @ton/core
+// FIX: We now only need TonConnectUIProvider. Network enum is replaced by string literal.
 import { TonConnectUIProvider } from '@tonconnect/ui-react'; 
-import { Network } from '@ton/core'; // <--- FINAL FIX: Using @ton/core
 
 // === TON CONNECT MANIFEST URL SETUP ===
 const manifestUrl = "/tonconnect-manifest.json";
@@ -23,11 +21,11 @@ const manifestUrl = "/tonconnect-manifest.json";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* FINAL CONFIG: Force Testnet AND add key to bust wallet manifest cache */}
+    {/* FINAL FIX: Use the 'testnet' string literal to avoid any further enum errors. */}
     <TonConnectUIProvider 
       manifestUrl={manifestUrl}
-      network={Network.TESTNET} // <--- Forces Testnet targeting
-      key="version-1.2" // <--- CRITICAL TEMPORARY CACHE BUSTER
+      network={'testnet'} // <--- THE FINAL, DEFINITIVE FIX
+      key="version-1.2" 
     >
       <App />
     </TonConnectUIProvider>
