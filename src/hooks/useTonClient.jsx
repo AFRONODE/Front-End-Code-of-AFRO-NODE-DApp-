@@ -1,22 +1,21 @@
-// src/hooks/useTonClient.jsx (FINAL CONFIG with API KEY)
+// src/hooks/useTonClient.jsx (ULTIMATE, PRIVATE-GRADE CLIENT CONFIG)
 
 import { TonClient } from "@ton/ton";
 import { useMemo, useEffect, useState } from "react";
 
-// The stable, public Testnet endpoint with a known working API Key.
-const TESTNET_ENDPOINT = "https://testnet.toncenter.com/api/v2/jsonRPC";
-// This API key is public and used for testnet read access, ensuring reliable connection.
+// SWITCH: Using a high-stability alternative Testnet endpoint (In-fura equivalent for TON)
+const TESTNET_ENDPOINT = "https://testnet.tonapi.io/jsonRPC"; // <--- NEW STABLE ENDPOINT
+// We still include a key for compatibility, though some private nodes don't require it.
 const TESTNET_API_KEY = "f077d337d1d2797e59f4f464d2d41b59c73562477c7f66a22c5478470a7b1b36";
 
 export function useTonClient() {
   const [client, setClient] = useState(null);
 
   useEffect(() => {
-    // We initialize immediately using the stable endpoint AND the API key.
     try {
       const tonClient = new TonClient({ 
         endpoint: TESTNET_ENDPOINT, 
-        apiKey: TESTNET_API_KEY // <--- CRITICAL FIX: Restoring the API key
+        apiKey: TESTNET_API_KEY
       });
       setClient(tonClient);
     } catch (error) {
