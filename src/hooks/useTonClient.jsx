@@ -1,25 +1,25 @@
-// src/hooks/useTonClient.jsx (ULTIMATE, PRIVATE-GRADE CLIENT CONFIG)
+// src/hooks/useTonClient.jsx (FINAL FINAL CLIENT CONFIG - NO API KEY)
 
 import { TonClient } from "@ton/ton";
 import { useMemo, useEffect, useState } from "react";
 
-// SWITCH: Using a high-stability alternative Testnet endpoint (In-fura equivalent for TON)
-const TESTNET_ENDPOINT = "https://testnet.tonapi.io/jsonRPC"; // <--- NEW STABLE ENDPOINT
-// We still include a key for compatibility, though some private nodes don't require it.
-const TESTNET_API_KEY = "f077d337d1d2797e59f4f464d2d41b59c73562477c7f66a22c5478470a7b1b36";
+// Using the stable, alternative Testnet endpoint.
+const TESTNET_ENDPOINT = "https://testnet.tonapi.io/jsonRPC";
 
 export function useTonClient() {
   const [client, setClient] = useState(null);
 
   useEffect(() => {
     try {
+      // FINAL FIX: Connecting without the API key, as tonapi.io often rejects it
+      // for public read-only access, causing the "no healthy nodes" error.
       const tonClient = new TonClient({ 
-        endpoint: TESTNET_ENDPOINT, 
-        apiKey: TESTNET_API_KEY
+        endpoint: TESTNET_ENDPOINT 
+        // apiKey is intentionally removed here
       });
       setClient(tonClient);
     } catch (error) {
-      console.error("FATAL: Hardcoded TonClient initialization failed.", error);
+      console.error("FATAL: TonClient initialization failed.", error);
     }
   }, []); 
 
