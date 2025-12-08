@@ -1,27 +1,24 @@
-// src/hooks/useTonClient.jsx (FINAL & COMPLETE)
+// src/hooks/useTonClient.jsx (ABSOLUTELY FINAL CLIENT CONFIG)
 
 import { TonClient } from "@ton/ton";
-import { getHttpEndpoint } from "@ton/ton-access"; 
 import { useMemo, useEffect, useState } from "react";
+
+// Use a known, public, stable Testnet endpoint. 
+// This bypasses the ton-access dynamic search failures that cause "no healthy nodes".
+const TESTNET_ENDPOINT = "https://testnet.toncenter.com/api/v2/jsonRPC";
 
 export function useTonClient() {
   const [client, setClient] = useState(null);
 
   useEffect(() => {
-    async function initClient() {
-        try {
-            // Force Ton Access to find a healthy Testnet endpoint
-            const endpoint = await getHttpEndpoint({ network: "testnet" }); 
-
-            // Use the healthy endpoint to create the client
-            const tonClient = new TonClient({ endpoint });
-            setClient(tonClient);
-
-        } catch (error) {
-            console.error("FATAL: Failed to initialize TonClient using ton-access.", error);
-        }
+    // We initialize immediately using the stable endpoint.
+    try {
+      const tonClient = new TonClient({ endpoint: TESTNET_ENDPOINT });
+      setClient(tonClient);
+    } catch (error) {
+      // CRITICAL: If this fails, the DApp cannot function.
+      console.error("FATAL: Hardcoded TonClient initialization failed.", error);
     }
-    initClient();
   }, []); 
 
   return { client };
