@@ -1,18 +1,18 @@
-// src/hooks/useTonClient.jsx (ULTRA-STABLE LEGACY CONFIG)
+// src/hooks/useTonClient.jsx (THE ABSOLUTE FINAL INFRASTRUCTURE FIX)
 
 import { TonClient } from "@ton/ton";
 import { useMemo, useEffect, useState } from "react";
 
-// FINAL ENDPOINT: This is a highly stable, core public Testnet node, 
-// often immune to the load issues affecting toncenter/tonapi.
-const TESTNET_ENDPOINT = "https://testnet.ton.dev/api/v2/jsonRPC";
+// FINAL ENDPOINT: Using the exact, healthy Tatum.io Testnet Gateway provided.
+// This is the last and final infrastructure workaround to resolve the 'no healthy nodes' error.
+const TESTNET_ENDPOINT = "https://ton-testnet.gateway.tatum.io/api/v3"; 
 
 export function useTonClient() {
   const [client, setClient] = useState(null);
 
   useEffect(() => {
     try {
-      // Connecting without the API key, using the most stable legacy endpoint.
+      // Connecting using the most stable, unauthenticated public gateway available.
       const tonClient = new TonClient({ 
         endpoint: TESTNET_ENDPOINT 
       });
