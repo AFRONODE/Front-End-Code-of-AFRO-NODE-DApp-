@@ -1,7 +1,7 @@
 // src/hooks/useTonClient.jsx (THE ABSOLUTE FINAL SOLUTION: TonWeb)
 
 import { useEffect, useState } from "react";
-// CRITICAL FIX: Swapping out the problematic @ton/ton for the stable community version
+// CRITICAL FIX: The correct import for the installed library
 import TonWeb from "tonweb"; 
 
 // Using the exact, healthy Tatum.io Testnet Gateway provided.
@@ -12,8 +12,8 @@ export function useTonClient() {
 
   useEffect(() => {
     try {
-      // TonWeb initializes the client directly, preventing the "no healthy nodes" lookup failure.
-      // This code uses the library you successfully installed.
+      // TonWeb initializes the client directly using HttpProvider, 
+      // preventing the "no healthy nodes" dynamic lookup failure of the old library.
       const tonClient = new TonWeb(new TonWeb.HttpProvider(TESTNET_ENDPOINT, {}));
       setClient(tonClient);
     } catch (error) {
