@@ -1,25 +1,23 @@
-// src/hooks/useTonClient.jsx (THE ABSOLUTE FINAL SOLUTION: TonWeb)
+// vite.config.js - COMPLETE AND FINAL SYNTAX
 
-import { useEffect, useState } from "react";
-// CRITICAL FIX: The correct import for the installed library
-import TonWeb from "tonweb"; 
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
-// Using the exact, healthy Tatum.io Testnet Gateway provided.
-const TESTNET_ENDPOINT = "https://ton-testnet.gateway.tatum.io/api/v3"; 
-
-export function useTonClient() {
-  const [client, setClient] = useState(null);
-
-  useEffect(() => {
-    try {
-      // TonWeb initializes the client directly using HttpProvider, 
-      // preventing the "no healthy nodes" dynamic lookup failure of the old library.
-      const tonClient = new TonWeb(new TonWeb.HttpProvider(TESTNET_ENDPOINT, {}));
-      setClient(tonClient);
-    } catch (error) {
-      console.error("FATAL: TonWeb initialization failed.", error);
-    }
-  }, []); 
-
-  return { client };
-}
+export default defineConfig({
+  plugins: [
+    react(),
+    nodePolyfills({
+      include: ['buffer', 'process', 'util', 'stream'],
+      globals: {
+        Buffer: true,
+        process: true,
+      },
+      protocolImports: true,
+    }),
+  ],
+  base: '/',
+  define: {
+    'process.env': {}
+  } // <-- ENSURE THIS CLOSING BRACE IS PRESENT
+}); // <-- AND THIS CLOSING PARENTHESIS
