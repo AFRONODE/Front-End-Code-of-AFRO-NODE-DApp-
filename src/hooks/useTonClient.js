@@ -1,10 +1,11 @@
-// src/hooks/useTonClient.js - FINAL CLEAN CODE
+// src/hooks/useTonClient.js - FINAL CLEAN AND CORRECT CODE
 
 // We now import the correct, browser-compatible library (TonWeb)
 import TonWeb from 'tonweb';
 import { CHAIN } from "@tonconnect/protocol";
 import { useTonConnect } from "./useTonConnect";
-import { useAsyncInitialize } from "./useAsyncInit>
+// CORRECTED: Full import path, fixing the previous truncation and syntax error
+import { useAsyncInitialize } from "./useAsyncInitialize"; 
 
 // CRITICAL: Hardcode the Tatum Testnet endpoint for stability
 const TATUM_TESTNET_ENDPOINT = "https://ton-testnet.gateway.tatum.io/json-rpc"; 
@@ -13,7 +14,6 @@ const TATUM_TESTNET_ENDPOINT = "https://ton-testnet.gateway.tatum.io/json-rpc";
 export function useTonClient() {
   const { isTestnet } = useTonConnect() || {};
 
-  // The hook relies on useAsyncInitialize, which >
   const client = useAsyncInitialize(async () => {
     if (isTestnet === undefined) return null;
 
@@ -25,7 +25,7 @@ export function useTonClient() {
     try {
       // 2. Initialize TonWeb (using the correct constructor)
       console.log("DEBUG: Attempting to initialize TonWeb...");
-      
+
       // TonWeb needs an HTTP provider URL
       const provider = new TonWeb.HttpProvider(endpoint); 
       const newClient = new TonWeb(provider);
@@ -39,7 +39,7 @@ export function useTonClient() {
       console.error(e);
       return null;
     }
-  }, [isTestnet]);
+  }, [isTestnet]); 
 
   return { client };
 }
