@@ -1,51 +1,54 @@
 import { useEffect, useState } from "react";
 import { Address } from "@ton/core";
-import { useTonClient } from "./useTonClient";
 import { useTonConnect } from "./useTonConnect";
 
-// @dev Deployment address for AnodeMaster
-const ANODE_MASTER_ADDR = "EQCD39VS5VADWfG8K_N_pYkK493Nl44_I5HhK0-r3Nn2t_Hl";
+const ANODE_MASTER_ADDR = "EQD8vR95p-Tj0J6h_E3bE56R2oT2S9lD1qW6X2_j5XzY7t-n";
 
 export function useMainContract() {
-  const { client } = useTonClient();
   const { sender } = useTonConnect();
   const [contractData, setContractData] = useState(null);
   const [jettonBalance, setJettonBalance] = useState(0);
 
-  const contractAddress = Address.parse(ANODE_MASTER_ADDR);
+  let contractAddress;
+  try {
+    contractAddress = Address.parse(ANODE_MASTER_ADDR);
+  } catch (e) {
+    console.warn("Address parsing failed.");
+  }
 
   useEffect(() => {
-    // @dev State initialization for UI testing
+    if (!contractAddress) return;
+
     setContractData({
       contract_address: contractAddress.toString(),
-      counter_value: 1234,
+      counter_value: 1234, 
     });
     setJettonBalance(9999);
   }, [contractAddress]);
 
   const sendIncrement = async () => {
-    if (!sender) return;
-    console.log("[Contract] Trigger: Increment");
+    if (!sender || !contractAddress) return;
+    console.log("Increment Button Pressed.");
   };
 
   const sendDeposit = async () => {
-    if (!sender) return;
-    console.log("[Contract] Trigger: Deposit");
+    if (!sender || !contractAddress) return;
+    console.log("Deposit Button Pressed.");
   };
 
   const sendWithdraw = async () => {
-    if (!sender) return;
-    console.log("[Contract] Trigger: Withdraw");
+    if (!sender || !contractAddress) return;
+    console.log("Withdraw Button Pressed.");
   };
 
   const sendMint = async () => {
-    if (!sender) return;
-    console.log("[Admin] Trigger: Mint");
+    if (!sender || !contractAddress) return;
+    console.log("Mint Button Pressed.");
   };
 
   const sendAirdrop = async () => {
-    if (!sender) return;
-    console.log("[Admin] Trigger: Airdrop");
+    if (!sender || !contractAddress) return;
+    console.log("Airdrop Button Pressed.");
   };
 
   return {
