@@ -8,46 +8,49 @@ export function useMainContract() {
   const { sender } = useTonConnect();
   const [contractData, setContractData] = useState(null);
   const [jettonBalance, setJettonBalance] = useState(0);
-
-  let contractAddress;
+  
+  let contractAddress = null;
   try {
     contractAddress = Address.parse(ANODE_MASTER_ADDR);
   } catch (e) {
-    console.warn("Address parsing failed.");
+    console.warn("Contract Address parsing failed. Using raw string placeholder.");
   }
 
   useEffect(() => {
-    if (!contractAddress) return;
+    if (contractData) return;
+    
+    // Always use the raw string or parsed address for display to prevent stalling
+    const addressDisplay = contractAddress ? contractAddress.toString() : ANODE_MASTER_ADDR; 
 
     setContractData({
-      contract_address: contractAddress.toString(),
+      contract_address: addressDisplay,
       counter_value: 1234, 
     });
     setJettonBalance(9999);
-  }, [contractAddress]);
+  }, []);
 
   const sendIncrement = async () => {
-    if (!sender || !contractAddress) return;
+    if (!sender) return; 
     console.log("Increment Button Pressed.");
   };
 
   const sendDeposit = async () => {
-    if (!sender || !contractAddress) return;
+    if (!sender) return; 
     console.log("Deposit Button Pressed.");
   };
 
   const sendWithdraw = async () => {
-    if (!sender || !contractAddress) return;
+    if (!sender) return; 
     console.log("Withdraw Button Pressed.");
   };
 
   const sendMint = async () => {
-    if (!sender || !contractAddress) return;
+    if (!sender) return; 
     console.log("Mint Button Pressed.");
   };
 
   const sendAirdrop = async () => {
-    if (!sender || !contractAddress) return;
+    if (!sender) return; 
     console.log("Airdrop Button Pressed.");
   };
 
