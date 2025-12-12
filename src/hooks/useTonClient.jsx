@@ -1,23 +1,27 @@
-// vite.config.js - COMPLETE AND FINAL SYNTAX
+import TonWeb from 'tonweb';
+import { useTonConnect } from "./useTonConnect";
+import { useAsyncInitialize } from "./useAsyncInitialize";
 
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
+// @dev Tatum RPC Gateway for Testnet
+const TESTNET_RPC = "https://ton-testnet.gateway.tatum.io/json-rpc";
 
-export default defineConfig({
-  plugins: [
-    react(),
-    nodePolyfills({
-      include: ['buffer', 'process', 'util', 'stream'],
-      globals: {
-        Buffer: true,
-        process: true,
-      },
-      protocolImports: true,
-    }),
-  ],
-  base: '/',
-  define: {
-    'process.env': {}
-  } // <-- ENSURE THIS CLOSING BRACE IS PRESENT
-}); // <-- AND THIS CLOSING PARENTHESIS
+/**
+ * @dev Provider hook for TonWeb initialization
+ */
+export function useTonClient() {
+  const { isTestnet } = useTonConnect() || {};
+
+  const client = useAsyncInitialize(async () => {
+    if (isTestnet === undefined) return null;
+
+    try {
+      const provider = new TonWeb.HttpProvider(TESTNET_RPC);
+      return new TonWeb(provider);
+    } catch (error) {
+      console.error("[RPC] Initialization failed:", error);
+      return null;
+    }
+  }, [isTestnet]);
+
+  return { client };
+}
