@@ -1,24 +1,14 @@
-// src/App.jsx
-
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { TonConnectButton } from '@tonconnect/ui-react';
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
-import { useEffect } from 'react'; // Added for manifest monitoring
 
-// FINAL BUILD BUSTER 1.0 - Triggering recompile of hook dependencies.
-
-// === YOUR ACTUAL TONKEEPER ADMIN WALLET ADDRESS (Testnet) ===
 const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
-// ==========================================================
-
-// NETLIFY DEPLOYMENT URL (Used for absolute manifest resolution)
-const APP_URL = "https://afro-nodedapptestnet.netlify.app";
+const ADMIN_RAW_ADDRESS = "0:df084661623d05e67be6ecf8c22933ffdc88a0264d9fb7e9f278e00cb82256c0";
 
 function App() {
   const { connected } = useTonConnect();
   
-  // CRITICAL FIX: Destructure safely
   const {
     contract_address,
     counter_value,
@@ -30,23 +20,11 @@ function App() {
     sendAirdrop
   } = useMainContract() || {}; 
 
-  // ACCESS TonConnectUI client
   const [tonConnectUI] = useTonConnectUI(); 
 
-  // FIX: Force manifest check and set UI options on mount
-  useEffect(() => {
-    if (tonConnectUI) {
-      tonConnectUI.uiOptions = {
-        manifestUrl: `${APP_URL}/tonconnect-manifest.json`,
-      };
-    }
-  }, [tonConnectUI]);
-
-  // Check if the currently connected wallet is the Admin wallet
   const connectedAddress = tonConnectUI?.account?.address;
-  const isAdmin = connected && connectedAddress === ADMIN_WALLET_ADDRESS;
+  const isAdmin = connected && (connectedAddress === ADMIN_WALLET_ADDRESS || connectedAddress === ADMIN_RAW_ADDRESS);
 
-  // --- FINAL CRITICAL LOADING CHECK ---
   if (!contract_address) {
     return (
       <div className="app-container p-4 bg-anode-dark min-h-screen flex flex-col items-center justify-center">
@@ -61,7 +39,6 @@ function App() {
     ? contract_address.slice(0, 4) + "..." + contract_address.slice(-4)
     : "Loading...";
 
-  // Marketplace & Feature Placeholders
   const navigateToMarketplace = () => alert("Navigating to Central Marketplace.");
   const navigateToEscrow = () => alert("Navigating to Escrow Services.");
   const navigateToDAO = () => alert("Navigating to Innovation Hub DAO.");
@@ -79,7 +56,6 @@ function App() {
   return (
     <div className="app-container p-4 bg-anode-dark min-h-screen">
       
-      {/* HEADER */}
       <div className="header flex justify-between items-center mb-6" style={{display: 'flex', alignItems: 'center', padding: '10px'}}>
         <img 
             src="/afro-node-logo.png/Screenshot_20250607-124053.jpg" 
@@ -99,7 +75,6 @@ function App() {
         </div>
       </div>
 
-      {/* Main DApp Card */}
       <div className="card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
         <h2 className="text-2xl font-bold mb-4 text-anode-primary">Smart Contract Status</h2>
         <p className="text-anode-text mb-2">
@@ -113,19 +88,30 @@ function App() {
         </p>
 
         <div className="actions space-y-4">
-          <button onClick={sendIncrement} className={`btn bg-anode-primary hover:bg-anode-primary-dark ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!connected}>
+          <button
+            onClick={sendIncrement}
+            className={`btn bg-anode-primary hover:bg-anode-primary-dark ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!connected}
+          >
             Increment Counter
           </button>
-          <button onClick={sendDeposit} className={`btn bg-anode-secondary hover:bg-anode-secondary-dark ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!connected}>
+          <button
+            onClick={sendDeposit}
+            className={`btn bg-anode-secondary hover:bg-anode-secondary-dark ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!connected}
+          >
             Deposit 2 TON
           </button>
-          <button onClick={sendWithdraw} className={`btn bg-red-600 hover:bg-red-700 ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!connected}>
+          <button
+            onClick={sendWithdraw}
+            className={`btn bg-red-600 hover:bg-red-700 ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!connected}
+          >
             Withdraw 1 TON
           </button>
         </div>
       </div>
 
-      {/* Core Ecosystem Features */}
       <div className="features-card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
         <h3 className="text-xl font-bold mb-4 text-anode-primary">AFRO-NODE Ecosystem Features</h3>
         <div className="feature-grid grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -138,9 +124,9 @@ function App() {
         </div>
       </div>
 
-      {/* Marketplace Listings */}
       <div className="marketplace-listings-card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
         <h3 className="text-xl font-bold mb-4 text-anode-primary">Marketplace Listings</h3>
+        <p className="text-anode-text mb-4">Browse various Blockchain, AI, Web3, and Tech services available on the network.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {marketplaceItems.map(item => (
             <div key={item.id} className="bg-anode-dark p-4 rounded-lg border border-anode-secondary/50">
@@ -152,7 +138,6 @@ function App() {
         </div>
       </div>
 
-      {/* Fees Display */}
       <div className="fees-card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
         <h3 className="text-xl font-bold mb-4 text-anode-primary">Remittance & Fee Structure</h3>
         <ul className="list-disc list-inside text-anode-text space-y-2">
@@ -162,7 +147,6 @@ function App() {
         </ul>
       </div>
 
-      {/* Admin Tools */}
       {isAdmin && (
         <div className="admin-card bg-anode-bg p-6 rounded-xl shadow-lg border-2 border-anode-secondary">
           <h3 className="text-xl font-bold mb-4 text-red-500">ADMIN TOOLS</h3>
