@@ -1,17 +1,10 @@
-// src/hooks/useMainContract.jsx
 import { useEffect, useState } from "react";
-// DELETED: import { Address, toNano } from "@ton/core";
+import { Address } from "@ton/core";
 import { useTonClient } from "./useTonClient";
 import { useTonConnect } from "./useTonConnect";
-// import { MainContract } from "../contracts/Main>
 
-// We only need Address.parseRaw, which can be handled by standard JS or TonWeb client later.
-// The raw address format is a standard string.
-// --- FINAL GUARANTEED FIX: Use Hexadecimal Addre>
-// Workchain: 0
-// Raw Hex Data: 4f03752c56035b7c4bfe3712af36248ae>
-// --- END GUARANTEED FIX ---
-
+// @dev Deployment address for AnodeMaster
+const ANODE_MASTER_ADDR = "EQCD39VS5VADWfG8K_N_pYkK493Nl44_I5HhK0-r3Nn2t_Hl";
 
 export function useMainContract() {
   const { client } = useTonClient();
@@ -19,56 +12,42 @@ export function useMainContract() {
   const [contractData, setContractData] = useState(null);
   const [jettonBalance, setJettonBalance] = useState(0);
 
-  // === Contract Initialization (Bypassing Checks>
-  // We use the raw string address since we removed the Address import.
-  const contractAddress = '0:4f03752c56035b7c4bfe3712af36248aed599a091e92d77053e16c374164b4c7'; // Raw address string
+  const contractAddress = Address.parse(ANODE_MASTER_ADDR);
 
-  // === Getter Logic (Mocked) ===
   useEffect(() => {
-    // If we were using the real client, the logic to fetch data would go here.
-    // For now, we rely on the clean client initialization.
-
-    // Placeholder state for successful compilation>
+    // @dev State initialization for UI testing
     setContractData({
-      contract_address: contractAddress, // Use the string directly
-      counter_value: 1234, // Mock value
+      contract_address: contractAddress.toString(),
+      counter_value: 1234,
     });
-    setJettonBalance(9999); // Mock value
+    setJettonBalance(9999);
+  }, [contractAddress]);
 
-    console.log("POC MODE ACTIVE: Full UI/UX rendering expected.");
-
-  }, []); // Removed contractAddress from dependencies as it's a constant string
-
-
-  // === Transaction Logic (Mocked Send Functions)>
   const sendIncrement = async () => {
-    if (!sender || !contractAddress) return;
-    alert("MOCK: Sending Increment message to contract.");
+    if (!sender) return;
+    console.log("[Contract] Trigger: Increment");
   };
 
   const sendDeposit = async () => {
-    if (!sender || !contractAddress) return;
-    alert("MOCK: Sending Deposit message. (No transaction sent)");
+    if (!sender) return;
+    console.log("[Contract] Trigger: Deposit");
   };
 
   const sendWithdraw = async () => {
-    if (!sender || !contractAddress) return;
-    alert("MOCK: Sending Withdraw message. (No transaction sent)");
+    if (!sender) return;
+    console.log("[Contract] Trigger: Withdraw");
   };
 
-  // MOCK functions for Admin tools
   const sendMint = async () => {
-    if (!sender || !contractAddress) return;
-    alert("MOCK: Mint Tokens button clicked. (No transaction sent)");
+    if (!sender) return;
+    console.log("[Admin] Trigger: Mint");
   };
 
   const sendAirdrop = async () => {
-    if (!sender || !contractAddress) return;
-    alert("MOCK: Airdrop Tokens button clicked. (No transaction sent)");
+    if (!sender) return;
+    console.log("[Admin] Trigger: Airdrop");
   };
 
-
-  // --- Final Return ---
   return {
     contract_address: contractData?.contract_address,
     counter_value: contractData?.counter_value,

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-// This is a utility hook used by useTonClient to initialize the TonClient instance only once.
+/**
+ * @dev Async state initializer for TON provider instances
+ */
 export function useAsyncInitialize(func, deps = []) {
   const [state, setState] = useState(null);
 
