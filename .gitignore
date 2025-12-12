@@ -1,4 +1,25 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
 
-# Local Netlify folder
-.netlify
+# Build Output
+dist/
+dist-ssr/
+build/
+.netlify/
+.vercel/
+
+# Environment / Secrets
+.env
+.env.local
+*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System Files
+.DS_Store
+Thumbs.db
