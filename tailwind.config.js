@@ -1,4 +1,3 @@
-// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -7,7 +6,6 @@ export default {
   ],
   theme: {
     extend: {
-      // ... (Ensure your colors block is correctly nested here)
       colors: {
         'anode-dark': '#0f172a',
         'anode-bg': '#1e293b',
@@ -20,7 +18,7 @@ export default {
         'anode-airdrop': '#be185d',
       },
       fontFamily: {
-        sans: ['"Inter"', 'ui-sans-serif', 'system-ui']
+        sans: ['"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       }
     },
   },
