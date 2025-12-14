@@ -9,36 +9,44 @@ const MARKETPLACE_ADDR = "0:7113a992fef9f9fef695db7df24fc7f9999fef695db7df24fc7f
 export function useMainContract() {
   const { sender, wallet } = useTonConnect();
   
-  // Initializing with values prevents the "Initializing..." UI hang
-  const [contractData, setContractData] = useState({
+  const [contractData] = useState({
     master_address: Address.parse(ANODE_MASTER_ADDR).toString({ testOnly: true }),
     escrow_address: Address.parse(ESCROW_ADDR).toString({ testOnly: true }),
     marketplace_address: Address.parse(MARKETPLACE_ADDR).toString({ testOnly: true }),
     counter_value: 1234
   });
   
-  const [userAnodeWallet, setUserAnodeWallet] = useState(null);
+  const [userAnodeWallet, setUserAnodeWallet] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Track loading state
 
   useEffect(() => {
+    // Simulate a successful "fetch" of contract data immediately
+    setIsLoading(false);
+
     if (wallet) {
-      setUserAnodeWallet("Discovery Pending");
+      setUserAnodeWallet("Discovery Pending (Mock)");
+      // For testing: Automatically grant Admin if a wallet is connected
       setIsAdmin(true); 
+      console.log("Wallet detected:", wallet);
     } else {
       setIsAdmin(false);
+      setUserAnodeWallet(null);
     }
   }, [wallet]);
 
-  const sendIncrement = async () => { if (!sender) return; };
-  const sendDeposit = async () => { if (!sender) return; };
-  const sendWithdraw = async () => { if (!sender) return; };
-  const sendMint = async () => { if (!sender || !isAdmin) return; };
-  const sendAirdrop = async () => { if (!sender || !isAdmin) return; };
+  // Placeholder functions so UI buttons don't crash
+  const sendIncrement = async () => { console.log("Mock Increment"); };
+  const sendDeposit = async () => { console.log("Mock Deposit"); };
+  const sendWithdraw = async () => { console.log("Mock Withdraw"); };
+  const sendMint = async () => { console.log("Mock Minting triggered"); };
+  const sendAirdrop = async () => { console.log("Mock Airdrop triggered"); };
 
   return {
     ...contractData,
     user_anode_wallet: userAnodeWallet,
     isAdmin,
+    isLoading, // Export this to your UI
     sendIncrement,
     sendDeposit,
     sendWithdraw,
