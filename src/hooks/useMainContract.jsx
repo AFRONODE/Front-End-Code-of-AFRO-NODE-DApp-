@@ -9,39 +9,50 @@ const MARKETPLACE_ADDR = "0:7113a992fef9f9fef695db7df24fc7f9999fef695db7df24fc7f
 export function useMainContract() {
   const { sender, wallet } = useTonConnect();
   
-  const [contractData] = useState({
-    master_address: Address.parse(ANODE_MASTER_ADDR).toString({ testOnly: true }),
-    escrow_address: Address.parse(ESCROW_ADDR).toString({ testOnly: true }),
-    marketplace_address: Address.parse(MARKETPLACE_ADDR).toString({ testOnly: true }),
-    counter_value: 1234
+  const [contractData] = useState(() => {
+    try {
+      return {
+        master_address: Address.parse(ANODE_MASTER_ADDR).toString({ testOnly: true }),
+        escrow_address: Address.parse(ESCROW_ADDR).toString({ testOnly: true }),
+        marketplace_address: Address.parse(MARKETPLACE_ADDR).toString({ testOnly: true }),
+        counter_value: 1234,
+        jetton_balance: 0
+      };
+    } catch (e) {
+      return {
+        master_address: ANODE_MASTER_ADDR,
+        escrow_address: ESCROW_ADDR,
+        marketplace_address: MARKETPLACE_ADDR,
+        counter_value: 0,
+        jetton_balance: 0
+      };
+    }
   });
   
-  // Removed the <string | null> type annotation for .jsx compatibility
   const [userAnodeWallet, setUserAnodeWallet] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); 
 
   useEffect(() => {
     setIsLoading(false);
-
     if (wallet) {
       setUserAnodeWallet("Discovery Pending (Mock)");
       setIsAdmin(true); 
-      console.log("Wallet detected:", wallet);
     } else {
       setIsAdmin(false);
       setUserAnodeWallet(null);
     }
   }, [wallet]);
 
-  const sendIncrement = async () => { console.log("Mock Increment"); };
-  const sendDeposit = async () => { console.log("Mock Deposit"); };
-  const sendWithdraw = async () => { console.log("Mock Withdraw"); };
-  const sendMint = async () => { console.log("Mock Minting triggered"); };
-  const sendAirdrop = async () => { console.log("Mock Airdrop triggered"); };
+  const sendIncrement = async () => { console.log("Incrementing..."); };
+  const sendDeposit = async () => { console.log("Depositing..."); };
+  const sendWithdraw = async () => { console.log("Withdrawing..."); };
+  const sendMint = async () => { console.log("Minting..."); };
+  const sendAirdrop = async () => { console.log("Airdropping..."); };
 
   return {
     ...contractData,
+    contract_address: contractData.master_address, // Matches App.jsx
     user_anode_wallet: userAnodeWallet,
     isAdmin,
     isLoading,

@@ -10,20 +10,20 @@ function App() {
   const [tonConnectUI] = useTonConnectUI(); 
   
   const {
-    master_address,
+    contract_address, // Restored original variable name
     counter_value,
     jetton_balance,
     sendIncrement,
     sendDeposit,
     sendWithdraw,
     sendMint,
-    sendAirdrop,
-    isLoading
+    sendAirdrop
   } = useMainContract() || {}; 
 
   let isAdmin = false;
   const connectedAddress = tonConnectUI?.account?.address;
 
+  // Optimized Admin Check
   if (connected && connectedAddress) {
     try {
       const connectedFriendly = Address.parse(connectedAddress).toString();
@@ -32,11 +32,12 @@ function App() {
         isAdmin = true;
       }
     } catch (e) {
-      console.error(e);
+      // Silent catch to prevent UI crash
     }
   }
 
-  if (isLoading || !master_address) {
+  // Restore your original Initializing screen
+  if (!contract_address) {
     return (
       <div className="app-container p-4 bg-anode-dark min-h-screen flex flex-col items-center justify-center">
         <h2 className="text-3xl font-bold text-anode-primary">Initializing DApp...</h2>
@@ -46,8 +47,8 @@ function App() {
     );
   }
 
-  const displayAddress = master_address
-    ? master_address.slice(0, 4) + "..." + master_address.slice(-4)
+  const displayAddress = contract_address
+    ? contract_address.slice(0, 4) + "..." + contract_address.slice(-4)
     : "Loading...";
 
   const navigateToMarketplace = () => alert("Navigating to Central Marketplace.");
@@ -89,33 +90,33 @@ function App() {
       <div className="card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
         <h2 className="text-2xl font-bold mb-4 text-anode-primary">Smart Contract Status</h2>
         <p className="text-anode-text mb-2">
-          Master Address: <code className="text-anode-secondary break-all">{displayAddress}</code>
+          Contract Address: <code className="text-anode-secondary break-all">{displayAddress}</code>
         </p>
         <p className="text-anode-text mb-2">
-          Counter Value: <span className="font-semibold text-white">{counter_value !== null ? counter_value.toString() : '1234'}</span>
+          Counter Value: <span className="font-semibold text-white">{(counter_value ?? 'N/A').toString()}</span>
         </p>
         <p className="text-anode-text mb-4">
-          Your Jetton Balance: <span className="font-semibold text-white">{jetton_balance !== null ? jetton_balance.toString() : '0'} $ANODE</span>
+          Your Jetton Balance: <span className="font-semibold text-white">{(jetton_balance ?? 'N/A').toString()} $ANODE</span>
         </p>
 
         <div className="actions space-y-4">
           <button
             onClick={sendIncrement}
-            className={`btn bg-anode-primary hover:bg-anode-primary-dark w-full py-3 rounded-lg font-bold transition-all ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`btn bg-anode-primary hover:bg-anode-primary-dark ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={!connected}
           >
             Increment Counter
           </button>
           <button
             onClick={sendDeposit}
-            className={`btn bg-anode-secondary hover:bg-anode-secondary-dark w-full py-3 rounded-lg font-bold transition-all ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`btn bg-anode-secondary hover:bg-anode-secondary-dark ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={!connected}
           >
             Deposit 2 TON
           </button>
           <button
             onClick={sendWithdraw}
-            className={`btn bg-red-600 hover:bg-red-700 w-full py-3 rounded-lg font-bold transition-all ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`btn bg-red-600 hover:bg-red-700 ${!connected ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={!connected}
           >
             Withdraw 1 TON
@@ -126,12 +127,24 @@ function App() {
       <div className="features-card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
         <h3 className="text-xl font-bold mb-4 text-anode-primary">AFRO-NODE Ecosystem Features</h3>
         <div className="feature-grid grid grid-cols-2 md:grid-cols-3 gap-4">
-          <button onClick={navigateToMarketplace} className="btn bg-blue-600 hover:bg-blue-700 transition-colors py-3 rounded-lg text-white font-medium">🌐 Central Marketplace</button>
-          <button onClick={navigateToEscrow} className="btn bg-green-600 hover:bg-green-700 transition-colors py-3 rounded-lg text-white font-medium">🔒 Escrow Services + Calculator</button>
-          <button onClick={navigateToDAO} className="btn bg-purple-600 hover:bg-purple-700 transition-colors py-3 rounded-lg text-white font-medium">💡 Innovation Hub DAO</button>
-          <button onClick={navigateToP2PTransfer} className="btn bg-yellow-600 hover:bg-yellow-700 transition-colors py-3 rounded-lg text-white font-medium">↔️ P2P $ANODE Transfer</button>
-          <button onClick={navigateToStaking} className="btn bg-pink-600 hover:bg-pink-700 transition-colors py-3 rounded-lg text-white font-medium">🌱 $ANODE Staking</button>
-          <button onClick={createDaoProposal} className="btn bg-orange-600 hover:bg-orange-700 transition-colors py-3 rounded-lg text-white font-medium">🗳️ DAO Proposal: African Tech Talents</button>
+          <button onClick={navigateToMarketplace} className="btn bg-blue-600 hover:bg-blue-700 transition-colors py-3">
+            🌐 Central Marketplace
+          </button>
+          <button onClick={navigateToEscrow} className="btn bg-green-600 hover:bg-green-700 transition-colors py-3">
+            🔒 Escrow Services + Calculator
+          </button>
+          <button onClick={navigateToDAO} className="btn bg-purple-600 hover:bg-purple-700 transition-colors py-3">
+            💡 Innovation Hub DAO
+          </button>
+          <button onClick={navigateToP2PTransfer} className="btn bg-yellow-600 hover:bg-yellow-700 transition-colors py-3">
+            ↔️ P2P $ANODE Transfer
+          </button>
+          <button onClick={navigateToStaking} className="btn bg-pink-600 hover:bg-pink-700 transition-colors py-3">
+            🌱 $ANODE Staking
+          </button>
+          <button onClick={createDaoProposal} className="btn bg-orange-600 hover:bg-orange-700 transition-colors py-3">
+            🗳️ DAO Proposal: African Tech Talents
+          </button>
         </div>
       </div>
 
@@ -143,7 +156,9 @@ function App() {
             <div key={item.id} className="bg-anode-dark p-4 rounded-lg border border-anode-secondary/50">
               <h4 className="font-semibold text-anode-primary mb-1">{item.title}</h4>
               <p className="text-sm text-anode-text-light mb-2">Service offered by a verified talent.</p>
-              <button className="mt-2 bg-anode-primary hover:bg-anode-primary-dark text-white font-bold py-1 px-3 rounded text-sm transition-colors">View Details</button>
+              <button className="mt-2 bg-anode-primary hover:bg-anode-primary-dark text-white font-bold py-1 px-3 rounded text-sm transition-colors">
+                View Details
+              </button>
             </div>
           ))}
         </div>
@@ -159,12 +174,16 @@ function App() {
       </div>
 
       {isAdmin && (
-        <div className="admin-card bg-anode-bg p-6 rounded-xl shadow-lg border-2 border-red-500 mb-6">
+        <div className="admin-card bg-anode-bg p-6 rounded-xl shadow-lg border-2 border-anode-secondary">
           <h3 className="text-xl font-bold mb-4 text-red-500">ADMIN TOOLS</h3>
-          <p className="text-anode-text mb-4">Admin wallet detected: <span className="text-white font-mono">{connectedAddress.slice(0, 8)}...</span></p>
+          <p className="text-anode-text mb-4">Admin wallet **{connectedAddress?.slice(0, 8)}...** detected. Mint and Airdrop functions available.</p>
           <div className="admin-actions space-y-4">
-            <button onClick={sendMint} className="btn bg-green-600 hover:bg-green-700 w-full py-3 rounded-lg font-bold text-white">Mint 1000 $ANODE Tokens</button>
-            <button onClick={sendAirdrop} className="btn bg-blue-600 hover:bg-blue-700 w-full py-3 rounded-lg font-bold text-white">Airdrop 500 $ANODE Tokens</button>
+            <button onClick={sendMint} className="btn bg-anode-mint hover:bg-anode-mint-dark" disabled={!connected}>
+              Mint 1000 $ANODE Tokens
+            </button>
+            <button onClick={sendAirdrop} className="btn bg-anode-airdrop hover:bg-anode-airdrop-dark" disabled={!connected}>
+              Airdrop 500 $ANODE Tokens
+            </button>
           </div>
         </div>
       )}
