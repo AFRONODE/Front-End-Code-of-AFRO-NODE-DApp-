@@ -8,25 +8,17 @@ const MARKETPLACE_ADDR = "0:7113a992fef9f9fef695db7df24fc7f9999fef695db7df24fc7f
 
 export function useMainContract() {
   const { sender, wallet } = useTonConnect();
+  
+  // Initializing with values prevents the "Initializing..." UI hang
   const [contractData, setContractData] = useState({
-    master_address: "",
-    escrow_address: "",
-    marketplace_address: "",
-    counter_value: 0
+    master_address: Address.parse(ANODE_MASTER_ADDR).toString({ testOnly: true }),
+    escrow_address: Address.parse(ESCROW_ADDR).toString({ testOnly: true }),
+    marketplace_address: Address.parse(MARKETPLACE_ADDR).toString({ testOnly: true }),
+    counter_value: 1234
   });
+  
   const [userAnodeWallet, setUserAnodeWallet] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-
-  const masterAddress = Address.parse(ANODE_MASTER_ADDR);
-
-  useEffect(() => {
-    setContractData({
-      master_address: masterAddress.toString({ testOnly: true }),
-      escrow_address: Address.parse(ESCROW_ADDR).toString({ testOnly: true }),
-      marketplace_address: Address.parse(MARKETPLACE_ADDR).toString({ testOnly: true }),
-      counter_value: 1234
-    });
-  }, [masterAddress]);
 
   useEffect(() => {
     if (wallet) {
