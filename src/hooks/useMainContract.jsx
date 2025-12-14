@@ -16,17 +16,16 @@ export function useMainContract() {
     counter_value: 1234
   });
   
-  const [userAnodeWallet, setUserAnodeWallet] = useState<string | null>(null);
+  // Removed the <string | null> type annotation for .jsx compatibility
+  const [userAnodeWallet, setUserAnodeWallet] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Track loading state
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate a successful "fetch" of contract data immediately
     setIsLoading(false);
 
     if (wallet) {
       setUserAnodeWallet("Discovery Pending (Mock)");
-      // For testing: Automatically grant Admin if a wallet is connected
       setIsAdmin(true); 
       console.log("Wallet detected:", wallet);
     } else {
@@ -35,7 +34,6 @@ export function useMainContract() {
     }
   }, [wallet]);
 
-  // Placeholder functions so UI buttons don't crash
   const sendIncrement = async () => { console.log("Mock Increment"); };
   const sendDeposit = async () => { console.log("Mock Deposit"); };
   const sendWithdraw = async () => { console.log("Mock Withdraw"); };
@@ -46,7 +44,7 @@ export function useMainContract() {
     ...contractData,
     user_anode_wallet: userAnodeWallet,
     isAdmin,
-    isLoading, // Export this to your UI
+    isLoading,
     sendIncrement,
     sendDeposit,
     sendWithdraw,
