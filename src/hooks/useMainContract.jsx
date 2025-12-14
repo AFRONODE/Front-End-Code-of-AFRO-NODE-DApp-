@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { Address } from "@ton/core";
 import { useTonConnect } from "./useTonConnect";
 
-const ANODE_MASTER_ADDR = "EQBYiv7_H_9v6S07Sre9fS_ZpM_9v6S07Sre9fS_ZpM_9v6S";
-const ESCROW_ADDR = "EQBvW_THZ6yX-G6noA7f_32fK06noA7f_32fK06noA7f_22k";
-const MARKETPLACE_ADDR = "EQCxE6mS_v9v6S07Sre9fS_ZpM_9v6S07Sre9fS_ZpM_9v23";
+const ANODE_MASTER_ADDR = "0:622bfefe1fff1fef695db7df24fc7f9999fef695db7df24fc7f9999fef695db7";
+const ESCROW_ADDR = "0:6e5bf4c767ac97f86ea7bd7dfdf67cad3a9edddf67cad3a9edddf67cad3a9d9c";
+const MARKETPLACE_ADDR = "0:7113a992fef9f9fef695db7df24fc7f9999fef695db7df24fc7f9999fef695db";
 
 export function useMainContract() {
   const { sender, wallet } = useTonConnect();
@@ -35,27 +35,22 @@ export function useMainContract() {
 
   const sendIncrement = async () => {
     if (!sender) return;
-    console.log("Master: Increment");
   };
 
   const sendDeposit = async () => {
     if (!sender) return;
-    console.log("Escrow: Deposit");
   };
 
   const sendWithdraw = async () => {
     if (!sender) return;
-    console.log("Withdraw");
   };
 
   const sendMint = async () => {
     if (!sender || !isAdmin) return;
-    console.log("Admin: Mint");
   };
 
   const sendAirdrop = async () => {
     if (!sender || !isAdmin) return;
-    console.log("Admin: Airdrop");
   };
 
   return {
