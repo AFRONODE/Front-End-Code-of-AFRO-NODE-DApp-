@@ -8,21 +8,25 @@ const MARKETPLACE_ADDR = "0:7113a992fef9f9fef695db7df24fc7f9999fef695db7df24fc7f
 
 export function useMainContract() {
   const { sender, wallet } = useTonConnect();
-  const [contractData, setContractData] = useState(null);
+  const [contractData, setContractData] = useState({
+    master_address: "",
+    escrow_address: "",
+    marketplace_address: "",
+    counter_value: 0
+  });
   const [userAnodeWallet, setUserAnodeWallet] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const masterAddress = Address.parse(ANODE_MASTER_ADDR);
 
   useEffect(() => {
-    if (contractData) return;
-
     setContractData({
       master_address: masterAddress.toString({ testOnly: true }),
       escrow_address: Address.parse(ESCROW_ADDR).toString({ testOnly: true }),
       marketplace_address: Address.parse(MARKETPLACE_ADDR).toString({ testOnly: true }),
+      counter_value: 1234
     });
-  }, [masterAddress, contractData]);
+  }, [masterAddress]);
 
   useEffect(() => {
     if (wallet) {
@@ -33,25 +37,11 @@ export function useMainContract() {
     }
   }, [wallet]);
 
-  const sendIncrement = async () => {
-    if (!sender) return;
-  };
-
-  const sendDeposit = async () => {
-    if (!sender) return;
-  };
-
-  const sendWithdraw = async () => {
-    if (!sender) return;
-  };
-
-  const sendMint = async () => {
-    if (!sender || !isAdmin) return;
-  };
-
-  const sendAirdrop = async () => {
-    if (!sender || !isAdmin) return;
-  };
+  const sendIncrement = async () => { if (!sender) return; };
+  const sendDeposit = async () => { if (!sender) return; };
+  const sendWithdraw = async () => { if (!sender) return; };
+  const sendMint = async () => { if (!sender || !isAdmin) return; };
+  const sendAirdrop = async () => { if (!sender || !isAdmin) return; };
 
   return {
     ...contractData,
