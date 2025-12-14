@@ -8,8 +8,8 @@ const MARKETPLACE_ADDR = "EQCxE6mS_v9v6S07Sre9fS_ZpM_9v6S07Sre9fS_ZpM_9v23";
 
 export function useMainContract() {
   const { sender, wallet } = useTonConnect();
-  const [contractData, setContractData] = useState<any>(null);
-  const [userAnodeWallet, setUserAnodeWallet] = useState<string | null>(null);
+  const [contractData, setContractData] = useState(null);
+  const [userAnodeWallet, setUserAnodeWallet] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const masterAddress = Address.parse(ANODE_MASTER_ADDR);
@@ -28,27 +28,34 @@ export function useMainContract() {
     if (wallet) {
       setUserAnodeWallet("Discovery Pending");
       setIsAdmin(true); 
+    } else {
+      setIsAdmin(false);
     }
   }, [wallet]);
 
   const sendIncrement = async () => {
     if (!sender) return;
+    console.log("Master: Increment");
   };
 
   const sendDeposit = async () => {
     if (!sender) return;
+    console.log("Escrow: Deposit");
   };
 
   const sendWithdraw = async () => {
     if (!sender) return;
+    console.log("Withdraw");
   };
 
   const sendMint = async () => {
     if (!sender || !isAdmin) return;
+    console.log("Admin: Mint");
   };
 
   const sendAirdrop = async () => {
     if (!sender || !isAdmin) return;
+    console.log("Admin: Airdrop");
   };
 
   return {
