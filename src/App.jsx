@@ -10,14 +10,18 @@ function App() {
   const [tonConnectUI] = useTonConnectUI(); 
   
   const {
-    contract_address, // Restored original variable name
+    contract_address,
+    marketplace_address,
+    escrow_address,
+    dao_address,
     counter_value,
     jetton_balance,
     sendIncrement,
     sendDeposit,
     sendWithdraw,
     sendMint,
-    sendAirdrop
+    sendAirdrop,
+    sendAnodePayment // Added for Marketplace/Escrow logic
   } = useMainContract() || {}; 
 
   let isAdmin = false;
@@ -32,7 +36,7 @@ function App() {
         isAdmin = true;
       }
     } catch (e) {
-      // Silent catch to prevent UI crash
+      // Silent catch
     }
   }
 
@@ -51,18 +55,27 @@ function App() {
     ? contract_address.slice(0, 4) + "..." + contract_address.slice(-4)
     : "Loading...";
 
-  const navigateToMarketplace = () => alert("Navigating to Central Marketplace.");
-  const navigateToEscrow = () => alert("Navigating to Escrow Services.");
-  const navigateToDAO = () => alert("Navigating to Innovation Hub DAO.");
-  const navigateToStaking = () => alert("Navigating to $ANODE Staking.");
-  const navigateToP2PTransfer = () => alert("Navigating to P2P $ANODE Transfer.");
-  const createDaoProposal = () => alert("Creating DAO Proposal.");
+  // Real Blockchain Transaction Triggers
+  const handleMarketplaceAction = () => {
+    if(!connected) return alert("Please connect wallet");
+    sendAnodePayment(marketplace_address, "50"); // Example price
+  };
+
+  const handleEscrowAction = () => {
+    if(!connected) return alert("Please connect wallet");
+    sendAnodePayment(escrow_address, "100"); // Example deposit
+  };
+
+  const handleDAOAction = () => {
+    // Redirects to the DAO contract on Explorer or opens DAO portal
+    window.open(`https://testnet.tonviewer.com/${dao_address}`, '_blank');
+  };
 
   const marketplaceItems = [
-    { id: 1, title: "Web3 DApp Development Masterclass" },
-    { id: 2, title: "AI-Powered Smart Contract Audit" },
-    { id: 3, title: "Blockchain Security Consultation" },
-    { id: 4, title: "Custom Web2 Frontend Development" },
+    { id: 1, title: "Web3 DApp Development Masterclass", price: "50" },
+    { id: 2, title: "AI-Powered Smart Contract Audit", price: "150" },
+    { id: 3, title: "Blockchain Security Consultation", price: "100" },
+    { id: 4, title: "Custom Web2 Frontend Development", price: "80" },
   ];
 
   return (
@@ -70,14 +83,14 @@ function App() {
       
       <div className="header flex justify-between items-center mb-6" style={{display: 'flex', alignItems: 'center', padding: '10px'}}>
         <img 
-            src="/afro-node-logo.png/Screenshot_20250607-124053.jpg" 
+            src="/afro-node-logo.png" 
             alt="AFRO-NODE DApp Logo" 
             className="h-10" 
             style={{height: '50px', marginRight: '20px'}}
         />
         <h1 className="text-2xl font-bold text-white hidden md:block">AFRO-NODE DApp</h1>
         <img 
-            src="/anode-token.png/1764785319748~2_1.jpg" 
+            src="/anode-token.png" 
             alt="$ANODE Token Logo" 
             className="h-10"
             style={{height: '50px', marginLeft: '20px'}}
@@ -93,10 +106,10 @@ function App() {
           Contract Address: <code className="text-anode-secondary break-all">{displayAddress}</code>
         </p>
         <p className="text-anode-text mb-2">
-          Counter Value: <span className="font-semibold text-white">{(counter_value ?? 'N/A').toString()}</span>
+          Counter Value: <span className="font-semibold text-white">{(counter_value ?? '0').toString()}</span>
         </p>
         <p className="text-anode-text mb-4">
-          Your Jetton Balance: <span className="font-semibold text-white">{(jetton_balance ?? 'N/A').toString()} $ANODE</span>
+          Your Jetton Balance: <span className="font-semibold text-white">{(jetton_balance ?? '0').toString()} $ANODE</span>
         </p>
 
         <div className="actions space-y-4">
@@ -127,37 +140,41 @@ function App() {
       <div className="features-card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
         <h3 className="text-xl font-bold mb-4 text-anode-primary">AFRO-NODE Ecosystem Features</h3>
         <div className="feature-grid grid grid-cols-2 md:grid-cols-3 gap-4">
-          <button onClick={navigateToMarketplace} className="btn bg-blue-600 hover:bg-blue-700 transition-colors py-3">
+          <button onClick={handleMarketplaceAction} className="btn bg-blue-600 hover:bg-blue-700 transition-colors py-3">
             🌐 Central Marketplace
           </button>
-          <button onClick={navigateToEscrow} className="btn bg-green-600 hover:bg-green-700 transition-colors py-3">
+          <button onClick={handleEscrowAction} className="btn bg-green-600 hover:bg-green-700 transition-colors py-3">
             🔒 Escrow Services + Calculator
           </button>
-          <button onClick={navigateToDAO} className="btn bg-purple-600 hover:bg-purple-700 transition-colors py-3">
+          <button onClick={handleDAOAction} className="btn bg-purple-600 hover:bg-purple-700 transition-colors py-3">
             💡 Innovation Hub DAO
           </button>
-          <button onClick={navigateToP2PTransfer} className="btn bg-yellow-600 hover:bg-yellow-700 transition-colors py-3">
+          <button onClick={() => sendAnodePayment(ADMIN_WALLET_ADDRESS, "10")} className="btn bg-yellow-600 hover:bg-yellow-700 transition-colors py-3">
             ↔️ P2P $ANODE Transfer
           </button>
-          <button onClick={navigateToStaking} className="btn bg-pink-600 hover:bg-pink-700 transition-colors py-3">
+          <button onClick={sendIncrement} className="btn bg-pink-600 hover:bg-pink-700 transition-colors py-3">
             🌱 $ANODE Staking
           </button>
-          <button onClick={createDaoProposal} className="btn bg-orange-600 hover:bg-orange-700 transition-colors py-3">
+          <button onClick={handleDAOAction} className="btn bg-orange-600 hover:bg-orange-700 transition-colors py-3">
             🗳️ DAO Proposal: African Tech Talents
           </button>
         </div>
       </div>
 
       <div className="marketplace-listings-card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
-        <h3 className="text-xl font-bold mb-4 text-anode-primary">Marketplace Listings</h3>
+        <h3 className="text-xl font-bold mb-4 text-anode-primary">Marketplace Listings ($ANODE Only)</h3>
         <p className="text-anode-text mb-4">Browse various Blockchain, AI, Web3, and Tech services available on the network.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {marketplaceItems.map(item => (
             <div key={item.id} className="bg-anode-dark p-4 rounded-lg border border-anode-secondary/50">
               <h4 className="font-semibold text-anode-primary mb-1">{item.title}</h4>
-              <p className="text-sm text-anode-text-light mb-2">Service offered by a verified talent.</p>
-              <button className="mt-2 bg-anode-primary hover:bg-anode-primary-dark text-white font-bold py-1 px-3 rounded text-sm transition-colors">
-                View Details
+              <p className="text-sm text-anode-text-light mb-2">{item.price} $ANODE</p>
+              <button 
+                onClick={() => sendAnodePayment(marketplace_address, item.price)}
+                className="mt-2 bg-anode-primary hover:bg-anode-primary-dark text-white font-bold py-1 px-3 rounded text-sm transition-colors"
+                disabled={!connected}
+              >
+                Pay with $ANODE
               </button>
             </div>
           ))}
