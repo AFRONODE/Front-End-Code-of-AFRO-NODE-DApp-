@@ -46,7 +46,8 @@ function App() {
     } catch (e) {}
   }
 
-  const handleProtectedAction = (action: Function, label: string) => {
+  // FIXED: Removed TypeScript types to ensure Netlify/Vite builds correctly
+  const handleProtectedAction = (action, label) => {
     if (!connected) {
       tonConnectUI.openModal();
       setTxStatus("Please connect your wallet to proceed.");
@@ -83,7 +84,7 @@ function App() {
       <div className="header flex justify-between items-center mb-6 bg-slate-800 p-4 rounded-lg shadow-lg border-b-2 border-blue-500">
         <div className="flex items-center gap-2">
           <img src="/afro-node-logo.png" alt="Logo" className="h-10 w-10" />
-          <h1 className="text-xl font-black hidden md:block">AFRO-NODE DApp</h1>
+          <h1 className="text-xl font-black hidden md:block text-blue-400">AFRO-NODE DApp</h1>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
@@ -178,7 +179,7 @@ function App() {
       {/* GOVERNANCE & ESCROW */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Escrow.tact Logic Alignment (10% Fee) */}
-        <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700">
+        <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
           <h2 className="text-xl font-bold mb-4 text-purple-400">Escrow Protocol 🔒</h2>
           <div className="bg-slate-900 p-4 rounded-lg mb-3 text-xs font-mono space-y-1">
             <div className="flex justify-between"><span>SERVICE BASE:</span> <span className="text-white">100%</span></div>
@@ -194,7 +195,7 @@ function App() {
         </div>
 
         {/* HubDAO.fc Logic Alignment (15% Talent Remittance) */}
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between">
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between shadow-xl">
           <div>
             <h3 className="text-xl font-bold mb-4 text-orange-400 flex items-center gap-2">
               <span>💡</span> Innovation Hub DAO
