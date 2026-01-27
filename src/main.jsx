@@ -11,7 +11,7 @@ import './index.css';
 
 window.Buffer = Buffer;
 
-const MANIFEST_URL = "https://afro-nodeweb3tondapp.netlify.app/tonconnect-manifest.json";
+const MANIFEST_URL = "https://afro-node-dual-ecosystems-web3-dapp.netlify.app/tonconnect-manifest.json";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
