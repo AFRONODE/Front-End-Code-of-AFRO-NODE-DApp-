@@ -19,7 +19,7 @@ export function useMainContract() {
           counter_value: Number(result.stack.readBigNumber()) 
         });
       } catch (e) { 
-        console.log("AnodeMaster connection pending..."); 
+        console.log("Waiting for AnodeMaster RPC..."); 
       }
     }
     getValue();
@@ -29,11 +29,16 @@ export function useMainContract() {
     contract_address: ANODE_MASTER_ADDR,
     counter_value: contractData.counter_value,
     connected,
-    sendMint: () => {
-      const body = beginCell().storeUint(0x15, 32).storeCoins(toNano("1000")).endCell();
+    sendMint: async () => {
+      const body = beginCell()
+        .storeUint(0x15, 32) // Op-code for Mint
+        .storeUint(0, 64)    // Query ID
+        .storeCoins(toNano("1000")) 
+        .endCell();
+        
       return sender.send({
         to: Address.parse(ANODE_MASTER_ADDR),
-        value: toNano("0.1"),
+        value: toNano("0.05"),
         body: body,
       });
     }
