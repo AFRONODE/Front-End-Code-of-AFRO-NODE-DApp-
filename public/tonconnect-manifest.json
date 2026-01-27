@@ -1,7 +1,5 @@
 {
   "url": "https://afro-node-dual-ecosystems-web3-dapp.netlify.app/",
-  "name": "AFRO-NODE Dual Ecosystem",
-  "iconUrl": "https://afro-node-dual-ecosystems-web3-dapp.netlify.app/afro-node-logo.png",
-  "termsOfUseUrl": "https://afro-node-dual-ecosystems-web3-dapp.netlify.app/terms",
-  "privacyPolicyUrl": "https://afro-node-dual-ecosystems-web3-dapp.netlify.app/privacy"
+  "name": "AFRO-NODE DApp",
+  "iconUrl": "https://afro-node-dual-ecosystems-web3-dapp.netlify.app/afro-node-logo.png"
 }

@@ -8,7 +8,7 @@ const MARKETPLACE_ADDR = "EQD-rLNksqy7ideJTKIw-wnhO3Zt6dsoGCoYiMlwu-4V9xrf";
 const HUB_DAO_ADDR = "EQDRBjOD-W1fypLGfCRhyUp5JXZPOdNHtEZWjrBKTiHi70Qq";
 
 export function useMainContract() {
-  const { sender, connected, wallet } = useTonConnect();
+  const { sender, connected } = useTonConnect();
   const [contractData] = useState({
     master_address: ANODE_MASTER_ADDR,
     escrow_address: ESCROW_ADDR,
@@ -31,18 +31,10 @@ export function useMainContract() {
       .storeBit(0)
       .endCell();
 
-    await sender.send({
+    return await sender.send({
       to: Address.parse(ANODE_MASTER_ADDR),
       value: toNano("0.1"),
       body: body,
-    });
-  };
-
-  const sendIncrement = async () => {
-    await sender.send({
-      to: Address.parse(ANODE_MASTER_ADDR),
-      value: toNano("0.05"),
-      body: beginCell().storeUint(0x37491f2f, 32).storeUint(0, 64).endCell(),
     });
   };
 
@@ -50,8 +42,10 @@ export function useMainContract() {
     ...contractData,
     contract_address: contractData.master_address,
     sendAnodePayment,
-    sendIncrement,
-    connected,
-    wallet
+    sendIncrement: async () => sender.send({ to: Address.parse(ANODE_MASTER_ADDR), value: toNano("0.05") }),
+    sendDeposit: async () => sender.send({ to: Address.parse(ANODE_MASTER_ADDR), value: toNano("2") }),
+    sendWithdraw: async () => sender.send({ to: Address.parse(ANODE_MASTER_ADDR), value: toNano("1") }),
+    sendMint: async () => console.log("Minting..."),
+    sendAirdrop: async () => console.log("Airdropping...")
   };
 }
