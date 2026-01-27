@@ -1,7 +1,7 @@
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
-import { Address } from '@ton/core';
+import { Address, toNano } from '@ton/core';
 import { useState } from 'react';
 
 const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
@@ -9,7 +9,12 @@ const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
 function App() {
   const { connected } = useTonConnect();
   const [tonConnectUI] = useTonConnectUI();
-  const [isPending, setIsPending] = useState(false);
+  const [txStatus, setTxStatus] = useState("");
+  
+  // States for P2P and Staking inputs
+  const [p2pRecipient, setP2pRecipient] = useState("");
+  const [p2pAmount, setP2pAmount] = useState("");
+  const [stakeAmount, setStakeAmount] = useState("");
 
   const {
     contract_address,
@@ -23,22 +28,14 @@ function App() {
     sendWithdraw,
     sendMint,
     sendAirdrop,
-    sendAnodePayment
-  } = useMainContract() || {};
-
-  const handleAction = async (task) => {
-    setIsPending(true);
-    try {
-      await task;
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsPending(false);
-    }
-  };
+    executeAnodePayment,
+    executeAnodeP2P,      // Added for logic handshake
+    executeAnodeStaking   // Added for logic handshake
+  } = useMainContract(); 
 
   let isAdmin = false;
   const connectedAddress = tonConnectUI?.account?.address;
+
   if (connected && connectedAddress) {
     try {
       const connectedFriendly = Address.parse(connectedAddress).toString();
@@ -47,84 +44,170 @@ function App() {
     } catch (e) {}
   }
 
-  if (!contract_address) {
-    return (
-      <div className="app-container p-4 bg-anode-dark min-h-screen flex flex-col items-center justify-center text-center">
-        <h2 className="text-3xl font-bold text-anode-primary">Initializing DApp...</h2>
-        <p className="text-anode-text mt-2">Connecting to TON network...</p>
-      </div>
-    );
-  }
+  const handleProtectedAction = (action, label) => {
+    if (!connected) {
+      tonConnectUI.openModal();
+      setTxStatus("Please connect your wallet to proceed.");
+      return;
+    }
+    setTxStatus(`Initiating ${label}... Check wallet!`);
+    action();
+  };
 
   const marketplaceItems = [
-    { id: 1, title: "Web3 DApp Development Masterclass", price: "50" },
-    { id: 2, title: "AI-Powered Smart Contract Audit", price: "150" },
-    { id: 3, title: "Blockchain Security Consultation", price: "100" },
-    { id: 4, title: "Custom Web2 Frontend Development", price: "80" },
+    { id: 1, title: "Web3 DApp Architecture", price: "200" },
+    { id: 2, title: "AI LLM & Machine Learning", price: "500" },
+    { id: 3, title: "Smart Contract Security Audit", price: "300" },
+    { id: 4, title: "Crypto Legal Compliance (Africa)", price: "150" },
+    { id: 5, title: "Tokenomics Design", price: "250" },
+    { id: 6, title: "Full-Stack Web2 Services", price: "100" },
   ];
 
+  if (!contract_address) {
+    return <div className="p-10 text-center text-blue-400 bg-slate-900 min-h-screen">Initializing AFRO-NODE...</div>;
+  }
+
   return (
-    <div className="app-container p-4 bg-anode-dark min-h-screen relative">
+    <div className="app-container p-4 bg-slate-900 min-h-screen text-white font-sans">
       
-      {isPending && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
-           <div className="p-6 bg-anode-bg rounded-2xl border border-anode-primary text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-anode-primary mx-auto mb-4"></div>
-              <p className="text-white font-bold text-xl">Transaction Pending...</p>
-              <p className="text-anode-text text-sm mt-2">Check your wallet and wait for block confirmation.</p>
-           </div>
+      {/* HEADER */}
+      <div className="header flex justify-between items-center mb-6 bg-slate-800 p-4 rounded-lg shadow-lg border-b-2 border-blue-500">
+        <img src="/afro-node-logo.png" alt="Logo" className="h-10 w-10" />
+        <h1 className="text-xl font-black">AFRO-NODE DApp 🌍</h1>
+        <img src="/anode-token.png" alt="Token" className="h-10 w-10" />
+        <TonConnectButton />
+      </div>
+
+      {/* LIVE TRANSACTION NOTIFICATIONS */}
+      {txStatus && (
+        <div className="mb-4 p-3 bg-blue-600/20 border border-blue-400 rounded-lg animate-pulse">
+          <p className="text-blue-300 text-center font-bold text-sm">📡 {txStatus}</p>
         </div>
       )}
 
-      <div className="header flex justify-between items-center mb-6" style={{display: 'flex', alignItems: 'center', padding: '10px'}}>
-        <img src="/afro-node-logo.png" alt="Logo" style={{height: '50px', marginRight: '20px'}} />
-        <h1 className="text-2xl font-bold text-white hidden md:block">AFRO-NODE DApp</h1>
-        <img src="/anode-token.png" alt="$ANODE" style={{height: '50px', marginLeft: '20px'}} />
-        <div style={{marginLeft: 'auto'}}><TonConnectButton /></div>
-      </div>
+      {/* BLOCKCHAIN VAULT & STAKING SECTION */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700">
+          <h2 className="text-xl font-bold mb-4 text-blue-400">Blockchain Vault 🏦</h2>
+          <div className="flex justify-between mb-4">
+            <span>Counter: <b>{counter_value}</b></span>
+            <span>Balance: <b className="text-yellow-500">{jetton_balance} $ANODE</b></span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <button onClick={() => handleProtectedAction(sendIncrement, "Increment")} className="bg-blue-600 p-2 rounded font-bold hover:bg-blue-500 transition-colors">➕ Increment</button>
+            <button onClick={() => handleProtectedAction(sendDeposit, "Deposit")} className="bg-green-600 p-2 rounded font-bold hover:bg-green-500 transition-colors">📥 Deposit 2 TON</button>
+            <button onClick={() => handleProtectedAction(sendWithdraw, "Withdraw")} className="bg-red-600 p-2 rounded font-bold hover:bg-red-500 transition-colors">📤 Withdraw 1 TON</button>
+          </div>
+        </div>
 
-      <div className="card bg-anode-bg p-6 rounded-xl shadow-lg mb-6 border border-white/5">
-        <h2 className="text-2xl font-bold mb-4 text-anode-primary">Smart Contract Status</h2>
-        <p className="text-anode-text mb-2 text-sm">Contract: <code className="text-anode-secondary">{contract_address.slice(0,6)}...{contract_address.slice(-4)}</code></p>
-        <p className="text-anode-text mb-2">Counter: <span className="text-white">{counter_value}</span></p>
-        <p className="text-anode-text mb-4">Balance: <span className="text-white">{jetton_balance} $ANODE</span></p>
-        <div className="actions flex flex-col gap-3">
-          <button onClick={() => handleAction(sendIncrement())} className="btn bg-anode-primary">Increment Counter</button>
-          <button onClick={() => handleAction(sendDeposit())} className="btn bg-anode-secondary">Deposit 2 TON</button>
+        {/* $ANODE UTILITY SECTION: STAKING & P2P */}
+        <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700">
+          <h2 className="text-xl font-bold mb-4 text-pink-400">Utility & Governance 🌱</h2>
+          <div className="space-y-4">
+            {/* Staking Input */}
+            <div className="flex gap-2">
+              <input 
+                type="number" 
+                placeholder="Amount to Stake" 
+                className="flex-1 bg-slate-900 p-2 rounded text-sm border border-slate-700 outline-none focus:border-pink-500"
+                value={stakeAmount}
+                onChange={(e) => setStakeAmount(e.target.value)}
+              />
+              <button 
+                onClick={() => handleProtectedAction(() => executeAnodeStaking(stakeAmount), "Staking")}
+                className="bg-pink-600 px-4 py-2 rounded font-bold text-xs"
+              >
+                STAKE $ANODE
+              </button>
+            </div>
+            {/* P2P Transfer */}
+            <div className="border-t border-slate-700 pt-4">
+              <p className="text-xs text-gray-400 mb-2 font-bold uppercase">↔️ P2P Wallet Transfer</p>
+              <input 
+                type="text" 
+                placeholder="Recipient Address" 
+                className="w-full bg-slate-900 p-2 rounded text-sm border border-slate-700 mb-2 outline-none focus:border-orange-500"
+                value={p2pRecipient}
+                onChange={(e) => setP2pRecipient(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <input 
+                  type="number" 
+                  placeholder="Amount" 
+                  className="w-1/3 bg-slate-900 p-2 rounded text-sm border border-slate-700 outline-none focus:border-orange-500"
+                  value={p2pAmount}
+                  onChange={(e) => setP2pAmount(e.target.value)}
+                />
+                <button 
+                  onClick={() => handleProtectedAction(() => executeAnodeP2P(p2pRecipient, p2pAmount), "P2P Transfer")}
+                  className="flex-1 bg-orange-600 py-2 rounded font-bold text-xs"
+                >
+                  SEND TO WALLET
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="features-card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
-        <h3 className="text-xl font-bold mb-4 text-anode-primary">AFRO-NODE Ecosystem Features</h3>
-        <div className="feature-grid grid grid-cols-2 md:grid-cols-3 gap-4">
-          <button onClick={() => handleAction(sendAnodePayment(marketplace_address, "50"))} className="btn bg-blue-600 py-3">🌐 Central Marketplace</button>
-          <button onClick={() => handleAction(sendAnodePayment(escrow_address, "100"))} className="btn bg-green-600 py-3">🔒 Escrow Services</button>
-          <button onClick={() => window.open(`https://testnet.tonviewer.com/${dao_address}`, '_blank')} className="btn bg-purple-600 py-3">💡 Innovation Hub DAO</button>
-          <button onClick={() => handleAction(sendAnodePayment(ADMIN_WALLET_ADDRESS, "10"))} className="btn bg-yellow-600 py-3">↔️ P2P $ANODE Transfer</button>
-          <button onClick={() => handleAction(sendIncrement())} className="btn bg-pink-600 py-3">🌱 $ANODE Staking</button>
-          <button onClick={() => window.open(`https://testnet.tonviewer.com/${dao_address}`, '_blank')} className="btn bg-orange-600 py-3">🗳️ DAO Proposal</button>
+      {/* ESCROW & MARKETPLACE REMAINS UNCHANGED */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700">
+          <h2 className="text-xl font-bold mb-4 text-purple-400">Escrow Calculator 🔒</h2>
+          <div className="bg-slate-900 p-3 rounded mb-3 text-sm">
+            <p>Service Payment: 100%</p>
+            <p>Service Fee: 10%</p>
+            <hr className="my-1 border-slate-700"/>
+            <p className="font-bold text-green-400">Total Remittance: 110%</p>
+          </div>
+          <button 
+            onClick={() => handleProtectedAction(() => executeAnodePayment('escrow'), "Escrow Payment")}
+            className="w-full bg-purple-600 p-2 rounded font-bold hover:bg-purple-500 transition-colors"
+          >
+            Initiate Secure Escrow
+          </button>
+        </div>
+
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+          <h3 className="text-xl font-bold mb-4 text-orange-400">Innovation Hub DAO 💡</h3>
+          <div className="grid grid-cols-1 gap-4 text-center">
+              <button onClick={() => window.open(`https://testnet.tonviewer.com/${dao_address}`)} className="bg-slate-700 p-4 rounded hover:border-orange-500 border border-transparent transition-all">
+                 🗳️ DAO Proposals & Voting
+              </button>
+              <div className="text-xs text-gray-400">
+                  <p>Remittance: 10% Marketplace / 15% Hub Talent</p>
+              </div>
+          </div>
         </div>
       </div>
 
-      <div className="marketplace-listings-card bg-anode-bg p-6 rounded-xl shadow-lg mb-6">
-        <h3 className="text-xl font-bold mb-4 text-anode-primary">Marketplace Listings ($ANODE Only)</h3>
+      <div className="bg-slate-800 p-6 rounded-xl shadow-lg mb-6">
+        <h3 className="text-xl font-bold mb-4 text-blue-400">Services Marketplace ($ANODE) 🌐</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {marketplaceItems.map(item => (
-            <div key={item.id} className="bg-anode-dark p-4 rounded-lg border border-anode-secondary/50">
-              <h4 className="font-semibold text-anode-primary mb-1">{item.title}</h4>
-              <p className="text-sm text-white mb-2">{item.price} $ANODE</p>
-              <button onClick={() => handleAction(sendAnodePayment(marketplace_address, item.price))} className="btn bg-anode-primary text-xs py-2 w-full">Pay with $ANODE</button>
+            <div key={item.id} className="p-3 bg-slate-700 rounded-lg flex justify-between items-center border border-slate-600">
+              <div>
+                <p className="font-bold text-sm">{item.title}</p>
+                <p className="text-xs text-yellow-500">{item.price} $ANODE</p>
+              </div>
+              <button 
+                onClick={() => handleProtectedAction(() => executeAnodePayment('marketplace'), item.title)}
+                className="bg-blue-500 text-xs px-3 py-1 rounded hover:bg-blue-400 transition-colors"
+              >
+                Order
+              </button>
             </div>
           ))}
         </div>
       </div>
 
+      {/* ADMIN TOOLS */}
       {isAdmin && (
-        <div className="admin-card bg-anode-bg p-6 rounded-xl shadow-lg border-2 border-anode-secondary">
-          <h3 className="text-xl font-bold mb-4 text-red-500">ADMIN TOOLS</h3>
-          <div className="admin-actions flex flex-col gap-3">
-            <button onClick={() => handleAction(sendMint())} className="btn bg-anode-mint">Mint 1000 $ANODE</button>
-            <button onClick={() => handleAction(sendAirdrop())} className="btn bg-anode-airdrop">Airdrop 500 $ANODE</button>
+        <div className="bg-red-900/20 p-6 rounded-xl border border-red-600">
+          <h3 className="text-red-500 font-bold mb-2 text-center underline tracking-widest">ADMIN GOVERNANCE</h3>
+          <div className="flex gap-2">
+            <button onClick={sendMint} className="flex-1 bg-red-600 p-2 rounded text-xs font-bold shadow-lg">MINT $ANODE</button>
+            <button onClick={sendAirdrop} className="flex-1 bg-orange-600 p-2 rounded text-xs font-bold shadow-lg">AIRDROP</button>
           </div>
         </div>
       )}
