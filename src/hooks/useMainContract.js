@@ -11,12 +11,8 @@ const HUB_DAO_ADDR = "EQDRBjOD-W1fypLGfCRhyUp5JXZPOdNHtEZWjrBKTiHi70Qq";
 export function useMainContract() {
   const { sender, connected, wallet } = useTonConnect();
   const { client } = useTonClient();
-  const [contractData, setContractData] = useState({
-    counter_value: 0,
-    jetton_balance: 0
-  });
+  const [contractData, setContractData] = useState({ counter_value: 0, jetton_balance: 0 });
 
-  // Fetch live data from Tact Get-Methods
   useEffect(() => {
     async function getValue() {
       if (!client) return;
@@ -29,19 +25,15 @@ export function useMainContract() {
   }, [client]);
 
   const safeSend = async (to, value, body = null) => {
-    if (!connected || !sender) {
-        alert("Please connect your wallet first!");
-        return;
-    }
-    try {
-        await sender.send({
-            to: Address.parse(to),
-            value: toNano(value),
-            body: body,
-        });
-    } catch (e) {
-        console.error("Transfer error:", e);
-    }
+    if (!connected || !sender) throw new Error("Wallet not connected");
+    
+    // Create transaction request with valid timestamp to avoid 'ci {}' errors
+    await sender.send({
+      to: Address.parse(to),
+      value: toNano(value),
+      body: body,
+      validUntil: Math.floor(Date.now() / 1000) + 60, // Valid for 60 seconds
+    });
   };
 
   return {
@@ -49,41 +41,23 @@ export function useMainContract() {
     dao_address: HUB_DAO_ADDR,
     ...contractData,
 
-    // TACT: Simple Increment (Op-code 0 usually handles text comments in Tact)
-    sendIncrement: () => safeSend(ANODE_MASTER_ADDR, "0.05", beginCell().storeUint(0, 32).storeStringTail("increment").endCell()),
-    
-    // TACT: Deposit (Just sending TON to the contract)
+    sendIncrement: () => safeSend(ANODE_MASTER_ADDR, "0.05", beginCell().storeUint(0x37491f2f, 32).storeUint(0, 64).endCell()),
     sendDeposit: () => safeSend(ANODE_MASTER_ADDR, "2.0"),
-
-    // SYNC: Marketplace Logic
-    // Even if backend doesn't list items, we send the "Order ID" as part of the payload
-    executeAnodePayment: (type, serviceTitle) => {
-      const body = beginCell()
-        .storeUint(0x2d1f760e, 32) // Match PurchaseService opcode in Marketplace.tact
-        .storeUint(Date.now(), 64)  // Unique Query ID
-        .storeStringTail(serviceTitle)
-        .endCell();
-      const target = type === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
-      return safeSend(target, "1.0", body);
+    sendWithdraw: () => safeSend(ANODE_MASTER_ADDR, "0.05", beginCell().storeUint(0x41836980, 32).storeUint(0, 64).endCell()),
+    
+    executeAnodePayment: (type) => {
+      const body = beginCell().storeUint(0x2d1f760e, 32).storeUint(0, 64).endCell();
+      const addr = type === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
+      return safeSend(addr, "1.0", body);
     },
 
-    // TACT: Staking Logic (AnodeWallet.tact)
     executeAnodeStaking: (amount) => {
-      const body = beginCell()
-        .storeUint(0x11223344, 32) 
-        .storeCoins(toNano(amount || "0"))
-        .endCell();
+      const body = beginCell().storeUint(0x11223344, 32).storeCoins(toNano(amount || "0")).endCell();
       return safeSend(ANODE_MASTER_ADDR, "0.1", body);
     },
 
-    // ADMIN: Minting (AnodeMaster.tact)
-    sendMint: () => {
-        const body = beginCell()
-            .storeUint(0x15, 32) 
-            .storeAddress(Address.parse(ADMIN_WALLET_ADDRESS)) // Hardcoded Admin
-            .storeCoins(toNano("1000"))
-            .endCell();
-        return safeSend(ANODE_MASTER_ADDR, "0.1", body);
-    }
+    sendMint: () => safeSend(ANODE_MASTER_ADDR, "0.1", beginCell().storeUint(0x15, 32).storeCoins(toNano("1000")).endCell()),
+    sendAirdrop: () => safeSend(ANODE_MASTER_ADDR, "0.1", beginCell().storeUint(0x44, 32).endCell()),
+    executeAnodeP2P: (recp, amt) => safeSend(ANODE_MASTER_ADDR, "0.05") 
   };
 }
