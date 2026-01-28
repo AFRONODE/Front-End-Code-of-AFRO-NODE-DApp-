@@ -17,4 +17,15 @@ export default defineConfig({
       util: 'util',
     },
   },
+  optimizeDeps: {
+    include: ['@ton/core', '@ton/ton'],
+  },
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+    rollupOptions: {
+      external: [], 
+    }
+  },
 })
