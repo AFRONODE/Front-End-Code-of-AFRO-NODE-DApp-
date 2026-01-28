@@ -15,11 +15,11 @@ export function useMainContract() {
       if (!client) return;
       try {
         const result = await client.runMethod(Address.parse(ANODE_MASTER_ADDR), "get_counter");
-        setContractData({ 
-          counter_value: Number(result.stack.readBigNumber()) 
+        setContractData({
+          counter_value: Number(result.stack.readBigNumber())
         });
-      } catch (e) { 
-        console.log("Waiting for AnodeMaster RPC..."); 
+      } catch (e) {
+        console.error("Contract Error:", e);
       }
     }
     getValue();
@@ -30,12 +30,7 @@ export function useMainContract() {
     counter_value: contractData.counter_value,
     connected,
     sendMint: async () => {
-      const body = beginCell()
-        .storeUint(0x15, 32) // Op-code for Mint
-        .storeUint(0, 64)    // Query ID
-        .storeCoins(toNano("1000")) 
-        .endCell();
-        
+      const body = beginCell().storeUint(0x15, 32).storeUint(0, 64).storeCoins(toNano("1000")).endCell();
       return sender.send({
         to: Address.parse(ANODE_MASTER_ADDR),
         value: toNano("0.05"),

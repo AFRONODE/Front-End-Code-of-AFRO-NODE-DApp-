@@ -82,7 +82,7 @@ function App() {
             onError={(e) => { e.target.src = "https://raw.githubusercontent.com/AFRONODE/Front-End-Code-of-AFRO-NODE-DApp-/main/public/anode-token.png" }}
           />
           {/* REMOVED 'hidden' - TITLE IS NOW ALWAYS VISIBLE */}
-          <h1 className="text-xl font-black text-blue-400">AFRO-NODE DApp</h1>
+          <h1 className="text-xl font-black text-blue-400">AFRO-NODE</h1>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
