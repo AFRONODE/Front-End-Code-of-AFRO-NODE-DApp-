@@ -76,10 +76,10 @@ function App() {
         <div className="flex items-center gap-2">
           {/* Logo with Fallback */}
           <img 
-            src="/afro_logo_v1.png" 
+            src="/anode-token.png" 
             alt="Logo" 
             className="h-10 w-10" 
-            onError={(e) => { e.target.src = "https://raw.githubusercontent.com/AFRONODE/Front-End-Code-of-AFRO-NODE-DApp-/main/public/afro_logo_v1.png" }}
+            onError={(e) => { e.target.src = "https://raw.githubusercontent.com/AFRONODE/Front-End-Code-of-AFRO-NODE-DApp-/main/public/anode-token.png" }}
           />
           {/* REMOVED 'hidden' - TITLE IS NOW ALWAYS VISIBLE */}
           <h1 className="text-xl font-black text-blue-400">AFRO-NODE DApp</h1>
