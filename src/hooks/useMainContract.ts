@@ -3,7 +3,7 @@ import { Address, toNano, beginCell } from "@ton/core";
 import { useTonConnect } from "./useTonConnect";
 import { useTonClient } from "./useTonClient";
 
-const ANODE_MASTER_ADDR = "EQBAG5qBNaTLePaCtjeHjGMcGl9tEk4o6OQXx3DO161ncnBS";
+const ANODE_MASTER_ADDR = "EQBGt7POdkpvf1_U5hb65KgvlVT-3FAtban1raJvpFKV89GI";
 
 export function useMainContract() {
   const { sender, connected } = useTonConnect();
