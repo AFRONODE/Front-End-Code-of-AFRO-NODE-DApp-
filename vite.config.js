@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import path from 'path'
 
 export default defineConfig({
   plugins: [
@@ -14,18 +15,14 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      util: 'util',
+      // This is the magic line that fixes the @ton/core build error
+      "../inspect": "util",
+      "util": "util",
     },
-  },
-  optimizeDeps: {
-    include: ['@ton/core', '@ton/ton'],
   },
   build: {
     commonjsOptions: {
       transformMixedEsModules: true,
     },
-    rollupOptions: {
-      external: [], 
-    }
   },
 })
