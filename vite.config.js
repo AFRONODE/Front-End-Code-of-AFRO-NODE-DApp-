@@ -1,25 +1,20 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
-/**
- * @dev AFRO-NODE Build Configuration
- * @notice Implements Node.js polyfills for TVM compatibility
- */
 export default defineConfig({
   plugins: [
     react(),
     nodePolyfills({
-      include: ['buffer', 'process', 'util', 'stream'],
       globals: {
         Buffer: true,
         process: true,
       },
-      protocolImports: true,
     }),
   ],
-  base: '/',
-  define: {
-    'process.env': {}
-  }
-});
+  resolve: {
+    alias: {
+      util: 'util',
+    },
+  },
+})
