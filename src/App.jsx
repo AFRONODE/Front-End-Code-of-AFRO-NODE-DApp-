@@ -1,7 +1,7 @@
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
-import { Address } from '@ton/core';
+import { Address, toNano } from '@ton/core'; // Added toNano for precise logic
 import { useState } from 'react';
 
 const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
@@ -25,9 +25,9 @@ function App() {
     sendWithdraw,
     sendMint,
     sendAirdrop,
-    executeAnodePayment,
+    executeAnodePayment, // Synced with Escrow/Marketplace logic
     executeAnodeP2P,      
-    executeAnodeStaking   
+    executeAnodeStaking   // Synced with AnodeWallet lock period
   } = useMainContract(); 
 
   let isAdmin = false;
@@ -40,6 +40,13 @@ function App() {
       if (connectedFriendly === adminFriendly) isAdmin = true;
     } catch (e) {}
   }
+
+  // --- LOGIC CALCULATORS (Sync with Back-End) ---
+  const calculateEscrowTotal = (quotedPrice) => {
+    // Escrow.tact logic: quoted_price = (total * 100) / 110
+    // To get total from quoted: total = quotedPrice * 1.1
+    return (parseFloat(quotedPrice) * 1.1).toFixed(2);
+  };
 
   const handleProtectedAction = (action, label) => {
     if (!connected) {
@@ -74,14 +81,12 @@ function App() {
     <div className="app-container p-4 bg-slate-900 min-h-screen text-white font-sans">
       <div className="header flex justify-between items-center mb-6 bg-slate-800 p-4 rounded-lg shadow-lg border-b-2 border-blue-500">
         <div className="flex items-center gap-2">
-          {/* Logo with Fallback */}
           <img 
             src="/anode-token.png" 
             alt="Logo" 
             className="h-10 w-10" 
             onError={(e) => { e.target.src = "https://raw.githubusercontent.com/AFRONODE/Front-End-Code-of-AFRO-NODE-DApp-/main/public/anode-token.png" }}
           />
-          {/* REMOVED 'hidden' - TITLE IS NOW ALWAYS VISIBLE */}
           <h1 className="text-xl font-black text-blue-400">AFRO-NODE</h1>
         </div>
         <div className="flex items-center gap-4">
@@ -100,15 +105,16 @@ function App() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Blockchain Vault - Sync with AnodeMaster.tact */}
         <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
           <h2 className="text-xl font-bold mb-4 text-blue-400 flex items-center gap-2"><span>🏦</span> Blockchain Vault</h2>
           <div className="grid grid-cols-2 gap-2 mb-6 bg-slate-900 p-3 rounded-lg border border-slate-700">
             <div className="text-center border-r border-slate-700">
-               <p className="text-xs text-gray-400 uppercase">Counter</p>
+               <p className="text-xs text-gray-400 uppercase">Vault Status</p>
                <p className="text-xl font-bold">{counter_value}</p>
             </div>
             <div className="text-center">
-               <p className="text-xs text-gray-400 uppercase">Vault Type</p>
+               <p className="text-xs text-gray-400 uppercase">Logic</p>
                <p className="text-xl font-bold text-blue-500">TACT</p>
             </div>
           </div>
@@ -119,12 +125,14 @@ function App() {
           </div>
         </div>
 
+        {/* Staking & P2P - Sync with AnodeWallet.tact */}
         <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
           <h2 className="text-xl font-bold mb-4 text-pink-400 flex items-center gap-2"><span>🌱</span> Staking & P2P</h2>
           <div className="space-y-4">
             <div className="flex gap-2">
               <input type="number" placeholder="Stake Amount" className="flex-1 bg-slate-900 p-2 rounded text-sm border border-slate-700" value={stakeAmount} onChange={(e) => setStakeAmount(e.target.value)} />
-              <button onClick={() => handleProtectedAction(() => executeAnodeStaking(stakeAmount), "Staking")} className="bg-pink-600 px-4 py-2 rounded font-bold text-xs hover:bg-pink-500">STAKE</button>
+              {/* Note: Staking sends 30-day lock period by default to match Back-End */}
+              <button onClick={() => handleProtectedAction(() => executeAnodeStaking(stakeAmount, 2592000), "Staking")} className="bg-pink-600 px-4 py-2 rounded font-bold text-xs hover:bg-pink-500">STAKE</button>
             </div>
             <div className="border-t border-slate-700 pt-4">
               <input type="text" placeholder="Recipient Address" className="w-full bg-slate-900 p-2 rounded text-sm border border-slate-700 mb-2" value={p2pRecipient} onChange={(e) => setP2pRecipient(e.target.value)} />
@@ -137,24 +145,38 @@ function App() {
         </div>
       </div>
 
+      {/* Escrow - Sync with Escrow.tact (includes 10% fee calc) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700">
-          <h2 className="text-xl font-bold mb-4 text-purple-400">Escrow Protocol 🔒</h2>
-          <button onClick={() => handleProtectedAction(() => executeAnodePayment('escrow'), "Escrow")} className="w-full bg-purple-600 p-3 rounded font-bold hover:bg-purple-500 shadow-lg shadow-purple-900/20">INITIATE SECURE CONTRACT</button>
+          <h2 className="text-xl font-bold mb-2 text-purple-400">Escrow Protocol 🔒</h2>
+          <p className="text-[10px] text-gray-400 mb-4 italic">* Logic: 10% Protocol Fee included in funding.</p>
+          <button onClick={() => handleProtectedAction(() => executeAnodePayment('escrow', 0), "Escrow")} className="w-full bg-purple-600 p-3 rounded font-bold hover:bg-purple-500 shadow-lg shadow-purple-900/20">INITIATE SECURE CONTRACT</button>
         </div>
+        
+        {/* Hub DAO - Sync with HubDAO.fc (FunC 0x1C0F logic) */}
         <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between">
-          <h3 className="text-xl font-bold mb-4 text-orange-400">Innovation Hub DAO 💡</h3>
+          <h3 className="text-xl font-bold mb-2 text-orange-400">Innovation Hub DAO 💡</h3>
+          <p className="text-[10px] text-gray-400 mb-4 italic">* Remittance: 15% Treasury / 85% Talent.</p>
           <button onClick={() => window.open(`https://testnet.tonviewer.com/${dao_address}`)} className="bg-slate-700 p-3 rounded border border-orange-500 font-bold text-sm">🗳️ OPEN VOTING</button>
         </div>
       </div>
 
+      {/* Marketplace - Sync with Marketplace.tact */}
       <div className="bg-slate-800 p-6 rounded-xl shadow-lg mb-6 border border-slate-700">
         <h3 className="text-xl font-bold mb-4 text-blue-400">Services Marketplace ($ANODE)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {marketplaceItems.map(item => (
             <div key={item.id} className="p-4 bg-slate-900 rounded-lg flex justify-between items-center border border-slate-800 hover:border-blue-500/50">
-              <div><p className="font-bold text-sm text-gray-100">{item.title}</p><p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE</p></div>
-              <button onClick={() => handleProtectedAction(() => executeAnodePayment('marketplace'), item.title)} className="bg-blue-500 text-[10px] px-4 py-2 rounded font-black hover:bg-blue-400 uppercase tracking-tighter">ORDER NOW</button>
+              <div>
+                <p className="font-bold text-sm text-gray-100">{item.title}</p>
+                <p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE</p>
+              </div>
+              <button 
+                onClick={() => handleProtectedAction(() => executeAnodePayment('marketplace', item.id), item.title)} 
+                className="bg-blue-500 text-[10px] px-4 py-2 rounded font-black hover:bg-blue-400 uppercase tracking-tighter"
+              >
+                ORDER NOW
+              </button>
             </div>
           ))}
         </div>
@@ -170,7 +192,9 @@ function App() {
         </div>
       )}
 
-      <footer className="mt-10 text-center text-[10px] text-gray-500 font-mono">AFRO-NODE v1.0.4 | SECURED BY TACT & FUNC | 2026</footer>
+      <footer className="mt-10 text-center text-[10px] text-gray-500 font-mono uppercase tracking-widest">
+        AFRO-NODE v1.0.4 | Dual-Engine: TACT & FUNC | 2026
+      </footer>
     </div>
   );
 }
