@@ -2,12 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/anode-token.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AFRO-NODE</title>
-    <link rel="preload" as="image" href="/afro-node-logo.png" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.onerror = function(msg, url, line, col, error) {
+        console.log("Erika Error Catch: " + msg + " at " + line + ":" + col);
+      };
+    </script>
   </body>
 </html>

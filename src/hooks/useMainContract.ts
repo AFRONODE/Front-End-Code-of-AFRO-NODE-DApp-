@@ -3,8 +3,10 @@ import { Address, toNano, beginCell } from "@ton/core";
 import { useTonClient } from "./useTonClient";
 import { useTonConnect } from "./useTonConnect";
 
-const MASTER_ADDR = "EQBGt7POdkpvf1_U5hb65KgvlVT-3FAtban1raJvpFKV89GI";
-const MARKETPLACE_ADDR = "REPLACE_WITH_MARKET_ADDR"; 
+// --- CONTRACT ADDRESSES ---
+const MASTER_ADDR = "EQBAG5qBNaTLePaCtjeHjGMcGl9tEk4o6OQXx3DO161ncnBS"; 
+const MARKETPLACE_ADDR = "EQBGt7POdkpvf1_U5hb65KgvlVT-3FAtban1raJvpFKV89GI"; 
+const DAO_ADDR = "REPLACE_WITH_HUB_DAO_FUNC_ADDR"; 
 const ESCROW_ADDR = "REPLACE_WITH_ESCROW_ADDR";
 
 export function useMainContract() {
@@ -12,69 +14,87 @@ export function useMainContract() {
   const { sender, connected } = useTonConnect();
   const [counter, setCounter] = useState<number | null>(null);
   const [userJettonWallet, setUserJettonWallet] = useState<string | null>(null);
+  const [jettonBalance, setJettonBalance] = useState<string>("0");
 
-  // 1. Fetch Master Data & User's Specific Anode-Wallet Address
   useEffect(() => {
     async function fetchData() {
       if (!client || !connected || !sender.address) return;
       try {
         const master = Address.parse(MASTER_ADDR);
         
-        // Fetch Counter
         const res = await client.runMethod(master, "get_counter");
         setCounter(Number(res.stack.readBigNumber()));
 
-        // FIND USER'S ANODE-WALLET: This is the magic step
         const userAddrCell = beginCell().storeAddress(sender.address).endCell();
         const walletRes = await client.runMethod(master, "get_wallet_address", [
           { type: "slice", cell: userAddrCell }
         ]);
-        setUserJettonWallet(walletRes.stack.readAddress().toString());
+        const walletAddr = walletRes.stack.readAddress();
+        setUserJettonWallet(walletAddr.toString());
 
-      } catch (e) { console.log("Contract syncing..."); }
+        const balanceRes = await client.runMethod(walletAddr, "get_wallet_data");
+        setJettonBalance((balanceRes.stack.readBigNumber() / BigInt(1e9)).toString());
+
+      } catch (e) { console.log("Erika syncing hardware..."); }
     }
     fetchData();
   }, [client, connected, sender.address]);
 
-  // 2. INTERNAL HELPER: The $ANODE Transfer Payload
-  const createAnodeTransfer = (to: string, amount: string, forward: any) => {
-    return beginCell()
-      .storeUint(0x0f8a7ea5, 32) // Standard Jetton Transfer Op
-      .storeUint(0, 64)          // query_id
-      .storeCoins(toNano(amount)) 
-      .storeAddress(Address.parse(to)) 
-      .storeAddress(sender.address!) 
-      .storeBit(false) 
-      .storeCoins(toNano("0.05")) // Forward gas for the contract logic
-      .storeMaybeRef(forward)
-      .endCell();
-  };
-
   return {
-    calculateFee: (price) => (parseFloat(price) * 0.10).toFixed(2),
     contract_address: MASTER_ADDR,
+    marketplace_address: MARKETPLACE_ADDR,
+    dao_address: DAO_ADDR,
     counter_value: counter,
+    jetton_balance: jettonBalance,
     connected,
-    
-    // PAY FOR MARKETPLACE SERVICE
-    executeAnodePayment: async (serviceId: number, price: string) => {
-      if (!userJettonWallet) return alert("Anode Wallet not detected!");
-      const forward = beginCell().storeUint(serviceId, 32).endCell();
+
+    // Hub DAO Voting Logic
+    executeDaoVote: async (proposalId: number, support: boolean) => {
+      const body = beginCell()
+        .storeUint(0x1c0f, 32) 
+        .storeUint(proposalId, 32)
+        .storeBit(support)
+        .endCell();
+
       return sender.send({
-        to: Address.parse(userJettonWallet),
-        value: toNano("0.1"), 
-        body: createAnodeTransfer(MARKETPLACE_ADDR, price, forward)
+        to: Address.parse(DAO_ADDR),
+        value: toNano("0.05"),
+        body: body
       });
     },
 
-    // FUND ESCROW GIG
-    executeEscrowFund: async (gigId: number, provider: string, amount: string) => {
-      if (!userJettonWallet) return alert("Anode Wallet not detected!");
-      const forward = beginCell().storeUint(gigId, 32).storeAddress(Address.parse(provider)).endCell();
+    // Sync with HubDAO.fc OP_PAY_TALENT (0x1C0F)
+    executeTalentPayment: async (proposalId: number) => {
+      const body = beginCell()
+        .storeUint(0x1C0F, 32) 
+        .storeUint(proposalId, 32)
+        .endCell();
+
+      return sender.send({
+        to: Address.parse(DAO_ADDR),
+        value: toNano("0.05"),
+        body: body
+      });
+    },
+
+    executeAnodePayment: async (type: string, id: number, price: string) => {
+      if (!userJettonWallet) return alert("Wallet not synced!");
+      const destination = type === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
+      const forward = beginCell().storeUint(id, 32).endCell();
+
       return sender.send({
         to: Address.parse(userJettonWallet),
         value: toNano("0.1"),
-        body: createAnodeTransfer(ESCROW_ADDR, amount, forward)
+        body: beginCell()
+          .storeUint(0x0f8a7ea5, 32)
+          .storeUint(0, 64)
+          .storeCoins(toNano(price))
+          .storeAddress(Address.parse(destination))
+          .storeAddress(sender.address!)
+          .storeBit(false)
+          .storeCoins(toNano("0.05"))
+          .storeMaybeRef(forward)
+          .endCell()
       });
     }
   };

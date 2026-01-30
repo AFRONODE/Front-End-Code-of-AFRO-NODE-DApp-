@@ -1,7 +1,7 @@
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
-import { Address, toNano } from '@ton/core'; // Added toNano for precise logic
+import { Address, toNano } from '@ton/core';
 import { useState } from 'react';
 
 const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
@@ -25,9 +25,9 @@ function App() {
     sendWithdraw,
     sendMint,
     sendAirdrop,
-    executeAnodePayment, // Synced with Escrow/Marketplace logic
+    executeAnodePayment,
     executeAnodeP2P,      
-    executeAnodeStaking   // Synced with AnodeWallet lock period
+    executeAnodeStaking
   } = useMainContract(); 
 
   let isAdmin = false;
@@ -40,13 +40,6 @@ function App() {
       if (connectedFriendly === adminFriendly) isAdmin = true;
     } catch (e) {}
   }
-
-  // --- LOGIC CALCULATORS (Sync with Back-End) ---
-  const calculateEscrowTotal = (quotedPrice) => {
-    // Escrow.tact logic: quoted_price = (total * 100) / 110
-    // To get total from quoted: total = quotedPrice * 1.1
-    return (parseFloat(quotedPrice) * 1.1).toFixed(2);
-  };
 
   const handleProtectedAction = (action, label) => {
     if (!connected) {
@@ -81,13 +74,15 @@ function App() {
     <div className="app-container p-4 bg-slate-900 min-h-screen text-white font-sans">
       <div className="header flex justify-between items-center mb-6 bg-slate-800 p-4 rounded-lg shadow-lg border-b-2 border-blue-500">
         <div className="flex items-center gap-2">
+          {/* AFRO-NODE BRAND LOGO RENDER */}
+          <img src="/afro-node-logo.png" alt="AFRO-NODE" className="h-10 w-auto" />
+          <div className="h-8 w-[1px] bg-slate-700 mx-2"></div>
           <img 
             src="/anode-token.png" 
-            alt="Logo" 
-            className="h-10 w-10" 
+            alt="Token" 
+            className="h-8 w-8" 
             onError={(e) => { e.target.src = "https://raw.githubusercontent.com/AFRONODE/Front-End-Code-of-AFRO-NODE-DApp-/main/public/anode-token.png" }}
           />
-<img src="/afro-node-logo.png" alt="AFRO-NODE Logo" className="h-10 w-auto" />
           <h1 className="text-xl font-black text-blue-400">AFRO-NODE</h1>
         </div>
         <div className="flex items-center gap-4">
@@ -106,7 +101,6 @@ function App() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {/* Blockchain Vault - Sync with AnodeMaster.tact */}
         <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
           <h2 className="text-xl font-bold mb-4 text-blue-400 flex items-center gap-2"><span>🏦</span> Blockchain Vault</h2>
           <div className="grid grid-cols-2 gap-2 mb-6 bg-slate-900 p-3 rounded-lg border border-slate-700">
@@ -126,13 +120,11 @@ function App() {
           </div>
         </div>
 
-        {/* Staking & P2P - Sync with AnodeWallet.tact */}
         <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
           <h2 className="text-xl font-bold mb-4 text-pink-400 flex items-center gap-2"><span>🌱</span> Staking & P2P</h2>
           <div className="space-y-4">
             <div className="flex gap-2">
               <input type="number" placeholder="Stake Amount" className="flex-1 bg-slate-900 p-2 rounded text-sm border border-slate-700" value={stakeAmount} onChange={(e) => setStakeAmount(e.target.value)} />
-              {/* Note: Staking sends 30-day lock period by default to match Back-End */}
               <button onClick={() => handleProtectedAction(() => executeAnodeStaking(stakeAmount, 2592000), "Staking")} className="bg-pink-600 px-4 py-2 rounded font-bold text-xs hover:bg-pink-500">STAKE</button>
             </div>
             <div className="border-t border-slate-700 pt-4">
@@ -146,7 +138,6 @@ function App() {
         </div>
       </div>
 
-      {/* Escrow - Sync with Escrow.tact (includes 10% fee calc) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700">
           <h2 className="text-xl font-bold mb-2 text-purple-400">Escrow Protocol 🔒</h2>
@@ -154,7 +145,6 @@ function App() {
           <button onClick={() => handleProtectedAction(() => executeAnodePayment('escrow', 0), "Escrow")} className="w-full bg-purple-600 p-3 rounded font-bold hover:bg-purple-500 shadow-lg shadow-purple-900/20">INITIATE SECURE CONTRACT</button>
         </div>
         
-        {/* Hub DAO - Sync with HubDAO.fc (FunC 0x1C0F logic) */}
         <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between">
           <h3 className="text-xl font-bold mb-2 text-orange-400">Innovation Hub DAO 💡</h3>
           <p className="text-[10px] text-gray-400 mb-4 italic">* Remittance: 15% Treasury / 85% Talent.</p>
@@ -162,7 +152,6 @@ function App() {
         </div>
       </div>
 
-      {/* Marketplace - Sync with Marketplace.tact */}
       <div className="bg-slate-800 p-6 rounded-xl shadow-lg mb-6 border border-slate-700">
         <h3 className="text-xl font-bold mb-4 text-blue-400">Services Marketplace ($ANODE)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -170,7 +159,8 @@ function App() {
             <div key={item.id} className="p-4 bg-slate-900 rounded-lg flex justify-between items-center border border-slate-800 hover:border-blue-500/50">
               <div>
                 <p className="font-bold text-sm text-gray-100">{item.title}</p>
-                <p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE (+ {calculateFee ? calculateFee(item.price) : (item.price * 0.1).toFixed(2)} Fee)</p>
+                {/* SYNCED FEE DISPLAY */}
+                <p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE (+{(item.price * 0.1).toFixed(0)} fee)</p>
               </div>
               <button 
                 onClick={() => handleProtectedAction(() => executeAnodePayment('marketplace', item.id), item.title)} 
