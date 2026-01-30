@@ -87,6 +87,7 @@ function App() {
             className="h-10 w-10" 
             onError={(e) => { e.target.src = "https://raw.githubusercontent.com/AFRONODE/Front-End-Code-of-AFRO-NODE-DApp-/main/public/anode-token.png" }}
           />
+<img src="/afro-node-logo.png" alt="AFRO-NODE Logo" className="h-10 w-auto" />
           <h1 className="text-xl font-black text-blue-400">AFRO-NODE</h1>
         </div>
         <div className="flex items-center gap-4">
@@ -169,7 +170,7 @@ function App() {
             <div key={item.id} className="p-4 bg-slate-900 rounded-lg flex justify-between items-center border border-slate-800 hover:border-blue-500/50">
               <div>
                 <p className="font-bold text-sm text-gray-100">{item.title}</p>
-                <p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE</p>
+                <p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE (+ {calculateFee ? calculateFee(item.price) : (item.price * 0.1).toFixed(2)} Fee)</p>
               </div>
               <button 
                 onClick={() => handleProtectedAction(() => executeAnodePayment('marketplace', item.id), item.title)} 

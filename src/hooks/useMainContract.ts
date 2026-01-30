@@ -51,6 +51,7 @@ export function useMainContract() {
   };
 
   return {
+    calculateFee: (price) => (parseFloat(price) * 0.10).toFixed(2),
     contract_address: MASTER_ADDR,
     counter_value: counter,
     connected,
