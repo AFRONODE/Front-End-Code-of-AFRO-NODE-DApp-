@@ -27,7 +27,10 @@ function App() {
     sendAirdrop,
     executeAnodePayment,
     executeAnodeP2P,      
-    executeAnodeStaking
+    executeAnodeStaking,
+    executeDaoVote,          // New Sync
+    executeMemberReg,        // New Sync
+    executeTalentPayment     // New Sync (0x1C0F)
   } = useMainContract(); 
 
   let isAdmin = false;
@@ -145,10 +148,23 @@ function App() {
           <button onClick={() => handleProtectedAction(() => executeAnodePayment('escrow', 0), "Escrow")} className="w-full bg-purple-600 p-3 rounded font-bold hover:bg-purple-500 shadow-lg shadow-purple-900/20">INITIATE SECURE CONTRACT</button>
         </div>
         
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between">
-          <h3 className="text-xl font-bold mb-2 text-orange-400">Innovation Hub DAO 💡</h3>
-          <p className="text-[10px] text-gray-400 mb-4 italic">* Remittance: 15% Treasury / 85% Talent.</p>
-          <button onClick={() => window.open(`https://testnet.tonviewer.com/${dao_address}`)} className="bg-slate-700 p-3 rounded border border-orange-500 font-bold text-sm">🗳️ OPEN VOTING</button>
+        {/* Innovation Hub DAO - UPDATED WITH FUNC SYNC FEATURES */}
+        <div className="bg-slate-800 p-6 rounded-xl border border-orange-500/50 shadow-lg flex flex-col justify-between">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-xl font-bold text-orange-400">Innovation Hub DAO 💡</h3>
+            <span className="text-[9px] bg-orange-500/20 text-orange-300 px-2 py-1 rounded border border-orange-500/30 uppercase">FunC 0x1C0F</span>
+          </div>
+          <p className="text-[10px] text-gray-400 mb-4 italic">* 15% Treasury / 85% Talent Remittance enabled.</p>
+          
+          <div className="grid grid-cols-2 gap-2 mb-3">
+             <button onClick={() => handleProtectedAction(executeMemberReg, "Registration")} className="bg-orange-600/10 border border-orange-600 text-orange-500 text-[10px] font-bold py-2 rounded uppercase hover:bg-orange-600/20">Join Hub</button>
+             <button onClick={() => handleProtectedAction(() => executeTalentPayment(100), "Remittance")} className="bg-orange-600 text-white text-[10px] font-bold py-2 rounded uppercase shadow-md active:scale-95">Claim Pay</button>
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={() => handleProtectedAction(() => executeDaoVote(1, true), "Voting")} className="flex-1 bg-slate-700 p-2 rounded border border-green-500/50 text-green-400 text-[10px] font-bold">VOTE YES</button>
+            <button onClick={() => window.open(`https://testnet.tonviewer.com/${dao_address}`)} className="flex-1 bg-slate-700 p-2 rounded border border-orange-500 text-white text-[10px] font-bold">EXPLORER</button>
+          </div>
         </div>
       </div>
 
@@ -159,7 +175,6 @@ function App() {
             <div key={item.id} className="p-4 bg-slate-900 rounded-lg flex justify-between items-center border border-slate-800 hover:border-blue-500/50">
               <div>
                 <p className="font-bold text-sm text-gray-100">{item.title}</p>
-                {/* SYNCED FEE DISPLAY */}
                 <p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE (+{(item.price * 0.1).toFixed(0)} fee)</p>
               </div>
               <button 
