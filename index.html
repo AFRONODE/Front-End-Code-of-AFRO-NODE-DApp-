@@ -3,38 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/anode-token.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>AFRO-NODE</title>
     <style>
-      #erika-console { 
-        position: fixed; top: 0; left: 0; width: 100%; 
-        background: rgba(220, 38, 38, 0.95); color: white; 
-        z-index: 99999; font-family: monospace; font-size: 10px; 
-        max-height: 100px; overflow-y: auto; padding: 8px;
-        display: none; border-bottom: 2px solid white;
-        word-break: break-all;
+      #erika-btn {
+        position: fixed; right: 0; top: 15%; width: 42px; height: 42px;
+        background: #1e293b; color: #3b82f6; z-index: 100000;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 8px 0 0 8px; border: 1px solid #3b82f6; border-right: none;
+        cursor: pointer; font-size: 20px; box-shadow: -2px 0 10px rgba(0,0,0,0.5);
       }
+      #erika-sidebar {
+        position: fixed; top: 0; right: -100%; width: 100%; height: 100%;
+        background: #020617; color: #10b981; z-index: 100001; display: flex;
+        flex-direction: column; transition: right 0.3s ease;
+      }
+      #erika-header { padding: 15px; background: #0f172a; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; font-weight: bold; }
+      #erika-logs { flex: 1; padding: 15px; overflow-y: auto; font-family: monospace; font-size: 11px; white-space: pre-wrap; user-select: all; }
     </style>
   </head>
   <body>
-    <div id="erika-console"></div>
+    <div id="erika-btn" onclick="toggleErika()">📟</div>
+    <div id="erika-sidebar">
+      <div id="erika-header">
+        <span>ERIKA DIAGNOSTICS</span>
+        <button onclick="toggleErika()" style="background:#ef4444; border:none; color:white; padding:5px 10px; border-radius:4px;">CLOSE</button>
+      </div>
+      <div id="log-display" style="padding:10px; font-size:10px; color:#64748b; border-bottom:1px solid #1e293b;">Select text below to copy logs</div>
+      <div id="erika-logs">-- SYSTEM INITIALIZED --</div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      const consoleDisplay = document.getElementById('erika-console');
-      function showError(msg) {
-        consoleDisplay.style.display = 'block';
-        consoleDisplay.innerHTML = '⚠️ ERROR: ' + msg;
+      const sidebar = document.getElementById('erika-sidebar');
+      const logBox = document.getElementById('erika-logs');
+      function toggleErika() { sidebar.style.right = sidebar.style.right === '0px' ? '-100%' : '0px'; }
+      function log(m, type="INFO") {
+        logBox.innerText += `\n[${new Date().toLocaleTimeString()}] ${type}: ${m}`;
+        logBox.scrollTop = logBox.scrollHeight;
       }
-      window.onerror = (msg) => showError(msg);
-      window.onunhandledrejection = (event) => showError(event.reason);
-      
-      // Also capture standard logs if they contain "Error"
-      const orgLog = console.error;
-      console.error = function(...args) {
-        showError(args.join(' '));
-        orgLog.apply(console, args);
-      };
+      window.onerror = (m) => log(m, "ERROR");
+      window.onunhandledrejection = (e) => log(e.reason, "REJECTION");
+      console.error = (m) => log(m, "CONSOLE");
     </script>
   </body>
 </html>

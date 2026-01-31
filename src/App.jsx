@@ -28,9 +28,9 @@ function App() {
     executeAnodePayment,
     executeAnodeP2P,      
     executeAnodeStaking,
-    executeDaoVote,          // New Sync
-    executeMemberReg,        // New Sync
-    executeTalentPayment     // New Sync (0x1C0F)
+    executeDaoVote,          
+    executeMemberReg,        
+    executeTalentPayment     
   } = useMainContract(); 
 
   let isAdmin = false;
@@ -77,7 +77,6 @@ function App() {
     <div className="app-container p-4 bg-slate-900 min-h-screen text-white font-sans">
       <div className="header flex justify-between items-center mb-6 bg-slate-800 p-4 rounded-lg shadow-lg border-b-2 border-blue-500">
         <div className="flex items-center gap-2">
-          {/* AFRO-NODE BRAND LOGO RENDER */}
           <img src="/afro-node-logo.png" alt="AFRO-NODE" className="h-10 w-auto" />
           <div className="h-8 w-[1px] bg-slate-700 mx-2"></div>
           <img 
@@ -144,17 +143,16 @@ function App() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700">
           <h2 className="text-xl font-bold mb-2 text-purple-400">Escrow Protocol 🔒</h2>
-          <p className="text-[10px] text-gray-400 mb-4 italic">* Logic: 10% Protocol Fee included in funding.</p>
+          <p className="text-[10px] text-gray-400 mb-4 italic">* Client Payment Rule: Service Fee + 10% Protocol Fee required in Escrow.</p>
           <button onClick={() => handleProtectedAction(() => executeAnodePayment('escrow', 0), "Escrow")} className="w-full bg-purple-600 p-3 rounded font-bold hover:bg-purple-500 shadow-lg shadow-purple-900/20">INITIATE SECURE CONTRACT</button>
         </div>
         
-        {/* Innovation Hub DAO - UPDATED WITH FUNC SYNC FEATURES */}
         <div className="bg-slate-800 p-6 rounded-xl border border-orange-500/50 shadow-lg flex flex-col justify-between">
           <div className="flex justify-between items-start mb-2">
             <h3 className="text-xl font-bold text-orange-400">Innovation Hub DAO 💡</h3>
             <span className="text-[9px] bg-orange-500/20 text-orange-300 px-2 py-1 rounded border border-orange-500/30 uppercase">FunC 0x1C0F</span>
           </div>
-          <p className="text-[10px] text-gray-400 mb-4 italic">* 15% Treasury / 85% Talent Remittance enabled.</p>
+          <p className="text-[10px] text-gray-400 mb-4 italic">* Talent Remittance: 15% Treasury / 85% Talent payout.</p>
           
           <div className="grid grid-cols-2 gap-2 mb-3">
              <button onClick={() => handleProtectedAction(executeMemberReg, "Registration")} className="bg-orange-600/10 border border-orange-600 text-orange-500 text-[10px] font-bold py-2 rounded uppercase hover:bg-orange-600/20">Join Hub</button>
@@ -170,12 +168,13 @@ function App() {
 
       <div className="bg-slate-800 p-6 rounded-xl shadow-lg mb-6 border border-slate-700">
         <h3 className="text-xl font-bold mb-4 text-blue-400">Services Marketplace ($ANODE)</h3>
+        <p className="text-[10px] text-gray-400 mb-4 italic">* Enthusiast Remittance: 10% Treasury / 90% Provider payout.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {marketplaceItems.map(item => (
             <div key={item.id} className="p-4 bg-slate-900 rounded-lg flex justify-between items-center border border-slate-800 hover:border-blue-500/50">
               <div>
                 <p className="font-bold text-sm text-gray-100">{item.title}</p>
-                <p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE (+{(item.price * 0.1).toFixed(0)} fee)</p>
+                <p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE</p>
               </div>
               <button 
                 onClick={() => handleProtectedAction(() => executeAnodePayment('marketplace', item.id), item.title)} 
