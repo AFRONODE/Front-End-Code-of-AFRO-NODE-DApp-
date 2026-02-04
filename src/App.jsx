@@ -10,7 +10,6 @@ function App() {
   const { connected } = useTonConnect();
   const [tonConnectUI] = useTonConnectUI();
   const [txStatus, setTxStatus] = useState("");
-  
   const [p2pRecipient, setP2pRecipient] = useState("");
   const [p2pAmount, setP2pAmount] = useState("");
   const [stakeAmount, setStakeAmount] = useState("");
@@ -20,6 +19,7 @@ function App() {
     dao_address,
     counter_value,
     jetton_balance,
+    member_rank,
     sendIncrement,
     sendDeposit,
     sendWithdraw,
@@ -35,7 +35,6 @@ function App() {
 
   let isAdmin = false;
   const connectedAddress = tonConnectUI?.account?.address;
-
   if (connected && connectedAddress) {
     try {
       const connectedFriendly = Address.parse(connectedAddress).toString();
@@ -50,7 +49,7 @@ function App() {
       setTxStatus("Please connect your wallet.");
       return;
     }
-    setTxStatus(`Confirming ${label}...`);
+    setTxStatus("Confirming " + label + "...");
     action();
   };
 
@@ -79,12 +78,7 @@ function App() {
         <div className="flex items-center gap-2">
           <img src="/afro-node-logo.png" alt="AFRO-NODE" className="h-10 w-auto" />
           <div className="h-8 w-[1px] bg-slate-700 mx-2"></div>
-          <img 
-            src="/anode-token.png" 
-            alt="Token" 
-            className="h-8 w-8" 
-            onError={(e) => { e.target.src = "https://raw.githubusercontent.com/AFRONODE/Front-End-Code-of-AFRO-NODE-DApp-/main/public/anode-token.png" }}
-          />
+          <img src="/anode-token.png" alt="Token" className="h-8 w-8" />
           <h1 className="text-xl font-black text-blue-400">AFRO-NODE</h1>
         </div>
         <div className="flex items-center gap-4">
@@ -144,21 +138,22 @@ function App() {
         <div className="card bg-slate-800 p-6 rounded-xl border border-slate-700">
           <h2 className="text-xl font-bold mb-2 text-purple-400">Escrow Protocol 🔒</h2>
           <p className="text-[10px] text-gray-400 mb-4 italic">* Client Payment Rule: Service Fee + 10% Protocol Fee required in Escrow.</p>
-          <button onClick={() => handleProtectedAction(() => executeAnodePayment('escrow', 0), "Escrow")} className="w-full bg-purple-600 p-3 rounded font-bold hover:bg-purple-500 shadow-lg shadow-purple-900/20">INITIATE SECURE CONTRACT</button>
+          <button onClick={() => handleProtectedAction(() => executeAnodePayment('escrow', 0, "100"), "Escrow")} className="w-full bg-purple-600 p-3 rounded font-bold hover:bg-purple-500 shadow-lg shadow-purple-900/20">INITIATE SECURE CONTRACT</button>
         </div>
         
         <div className="bg-slate-800 p-6 rounded-xl border border-orange-500/50 shadow-lg flex flex-col justify-between">
           <div className="flex justify-between items-start mb-2">
             <h3 className="text-xl font-bold text-orange-400">Innovation Hub DAO 💡</h3>
-            <span className="text-[9px] bg-orange-500/20 text-orange-300 px-2 py-1 rounded border border-orange-500/30 uppercase">FunC 0x1C0F</span>
+            <div className="text-right">
+                <p className="text-[8px] text-gray-400 uppercase">Skill: {member_rank?.score || 0}</p>
+                <p className="text-[10px] font-bold text-white uppercase">{member_rank?.rank || "Guest"}</p>
+            </div>
           </div>
           <p className="text-[10px] text-gray-400 mb-4 italic">* Talent Remittance: 15% Treasury / 85% Talent payout.</p>
-          
           <div className="grid grid-cols-2 gap-2 mb-3">
              <button onClick={() => handleProtectedAction(executeMemberReg, "Registration")} className="bg-orange-600/10 border border-orange-600 text-orange-500 text-[10px] font-bold py-2 rounded uppercase hover:bg-orange-600/20">Join Hub</button>
              <button onClick={() => handleProtectedAction(() => executeTalentPayment(100), "Remittance")} className="bg-orange-600 text-white text-[10px] font-bold py-2 rounded uppercase shadow-md active:scale-95">Claim Pay</button>
           </div>
-
           <div className="flex gap-2">
             <button onClick={() => handleProtectedAction(() => executeDaoVote(1, true), "Voting")} className="flex-1 bg-slate-700 p-2 rounded border border-green-500/50 text-green-400 text-[10px] font-bold">VOTE YES</button>
             <button onClick={() => window.open(`https://testnet.tonviewer.com/${dao_address}`)} className="flex-1 bg-slate-700 p-2 rounded border border-orange-500 text-white text-[10px] font-bold">EXPLORER</button>
@@ -177,7 +172,7 @@ function App() {
                 <p className="text-xs text-yellow-500 font-mono">{item.price} $ANODE</p>
               </div>
               <button 
-                onClick={() => handleProtectedAction(() => executeAnodePayment('marketplace', item.id), item.title)} 
+                onClick={() => handleProtectedAction(() => executeAnodePayment('marketplace', item.id, item.price), item.title)} 
                 className="bg-blue-500 text-[10px] px-4 py-2 rounded font-black hover:bg-blue-400 uppercase tracking-tighter"
               >
                 ORDER NOW
