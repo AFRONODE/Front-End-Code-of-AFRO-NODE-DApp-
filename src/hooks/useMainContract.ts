@@ -6,7 +6,6 @@ import { useTonConnect } from "./useTonConnect";
 const MASTER_ADDR = "EQBAG5qBNaTLePaCtjeHjGMcGl9tEk4o6OQXx3DO161ncnBS"; 
 const MARKETPLACE_ADDR = "EQBGt7POdkpvf1_U5hb65KgvlVT-3FAtban1raJvpFKV89GI"; 
 const DAO_ADDR = "REPLACE_WITH_HUB_DAO_FUNC_ADDR"; 
-const ESCROW_ADDR = "REPLACE_WITH_ESCROW_ADDR";
 const ADMIN_WALLET = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
 
 export function useMainContract() {
@@ -21,14 +20,18 @@ export function useMainContract() {
     async function fetchData() {
       if (!client || !connected || !sender.address) return;
       
-      // Admin Override
-      if (sender.address.toString() === Address.parse(ADMIN_WALLET).toString()) {
+      const userAddr = sender.address;
+      const adminAddr = Address.parse(ADMIN_WALLET);
+
+      // --- ADMIN UNICORN CHECK ---
+      // We use .equals() to compare the underlying account hash
+      if (userAddr.equals(adminAddr)) {
         setMemberRank({ score: 9999, rank: "Admin/Owner 🦄" });
       }
 
       try {
         const master = Address.parse(MASTER_ADDR);
-        const userAddrCell = beginCell().storeAddress(sender.address).endCell();
+        const userAddrCell = beginCell().storeAddress(userAddr).endCell();
         
         const walletRes = await client.runMethod(master, "get_wallet_address", [{ type: "slice", cell: userAddrCell }]);
         const walletAddr = walletRes.stack.readAddress();
@@ -37,20 +40,20 @@ export function useMainContract() {
         const balanceRes = await client.runMethod(walletAddr, "get_wallet_data");
         setJettonBalance((balanceRes.stack.readBigNumber() / BigInt(1e9)).toString());
 
-        if (!DAO_ADDR.includes("REPLACE")) {
+        // Fetch DAO rank only if deployed and NOT admin
+        if (!DAO_ADDR.includes("REPLACE") && !userAddr.equals(adminAddr)) {
           const rankRes = await client.runMethod(Address.parse(DAO_ADDR), "get_member_rank", [{ type: "slice", cell: userAddrCell }]);
-          // Only update if not admin to preserve Unicorn status
-          if (sender.address.toString() !== Address.parse(ADMIN_WALLET).toString()) {
-            setMemberRank({
-                score: Number(rankRes.stack.readBigNumber()),
-                rank: rankRes.stack.readString() || "Verified User"
-            });
-          }
+          setMemberRank({
+              score: Number(rankRes.stack.readBigNumber()),
+              rank: rankRes.stack.readString() || "Verified User"
+          });
         }
 
         const res = await client.runMethod(master, "get_counter");
         setCounter(Number(res.stack.readBigNumber()));
-      } catch (e) { console.log("Syncing..."); }
+      } catch (e) { 
+        console.log("Syncing Afro-Node data..."); 
+      }
     }
     fetchData();
   }, [client, connected, sender.address]);
@@ -64,7 +67,7 @@ export function useMainContract() {
     connected,
     executeMemberReg: async () => sender.send({ to: Address.parse(DAO_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x526567, 32).endCell() }),
     executeAnodePayment: async (t: string, id: number, p: string) => {
-      const dest = t === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
+      const dest = t === 'marketplace' ? MARKETPLACE_ADDR : "REPLACE_WITH_ESCROW";
       return sender.send({
         to: Address.parse(userJettonWallet!),
         value: toNano("0.1"),
