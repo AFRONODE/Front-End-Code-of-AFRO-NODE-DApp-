@@ -33,15 +33,8 @@ function App() {
     executeTalentPayment     
   } = useMainContract(); 
 
-  let isAdmin = false;
-  const connectedAddress = tonConnectUI?.account?.address;
-  if (connected && connectedAddress) {
-    try {
-      const connectedFriendly = Address.parse(connectedAddress).toString();
-      const adminFriendly = Address.parse(ADMIN_WALLET_ADDRESS).toString();
-      if (connectedFriendly === adminFriendly) isAdmin = true;
-    } catch (e) {}
-  }
+  // Unified Admin Check: Triggers Admin UI if the hook identifies the Unicorn rank
+  const isAdmin = member_rank?.rank?.includes("🦄");
 
   const handleProtectedAction = (action, label) => {
     if (!connected) {
@@ -82,10 +75,12 @@ function App() {
           <h1 className="text-xl font-black text-blue-400">AFRO-NODE</h1>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <p className="text-[10px] text-blue-400 font-mono">WALLET CONNECTED</p>
-            <p className="text-xs font-bold text-yellow-500">{jetton_balance} $ANODE</p>
-          </div>
+          {connected && (
+            <div className="text-right hidden sm:block">
+              <p className="text-[10px] text-blue-400 font-mono">WALLET CONNECTED</p>
+              <p className="text-xs font-bold text-yellow-500">{jetton_balance} $ANODE</p>
+            </div>
+          )}
           <TonConnectButton />
         </div>
       </div>

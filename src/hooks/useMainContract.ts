@@ -17,46 +17,49 @@ export function useMainContract() {
   const [jettonBalance, setJettonBalance] = useState<string>("0");
   const [memberRank, setMemberRank] = useState({score: 0, rank: "Guest"});
 
+  // --- REACTIVE IDENTITY CHECK ---
   useEffect(() => {
-    async function fetchData() {
-      if (!connected || !sender.address) return;
-
-      // --- NORMALIZE AND COMPARE ---
-      const connectedFriendly = sender.address.toString();
-      const adminFriendly = Address.parse(ADMIN_WALLET).toString();
-      
-      const isAdmin = connectedFriendly === adminFriendly;
-
-      if (isAdmin) {
+    if (connected && sender.address) {
+      const adminAddr = Address.parse(ADMIN_WALLET);
+      if (sender.address.equals(adminAddr)) {
         setMemberRank({ score: 9999, rank: "Admin/Owner 🦄" });
       }
+    }
+  }, [connected, sender.address]);
 
-      if (!client) return;
+  useEffect(() => {
+    async function fetchData() {
+      if (!client || !connected || !sender.address) return;
       
       try {
+        const userAddr = sender.address;
         const master = Address.parse(MASTER_ADDR);
-        const userAddrCell = beginCell().storeAddress(sender.address).endCell();
+        const userAddrCell = beginCell().storeAddress(userAddr).endCell();
         
+        // Fetch Jetton Wallet
         const walletRes = await client.runMethod(master, "get_wallet_address", [{ type: "slice", cell: userAddrCell }]);
         const walletAddr = walletRes.stack.readAddress();
         setUserJettonWallet(walletAddr.toString());
 
+        // Fetch Balance
         const balanceRes = await client.runMethod(walletAddr, "get_wallet_data");
         setJettonBalance((balanceRes.stack.readBigNumber() / BigInt(1e9)).toString());
 
-        // Only fetch DAO if not Admin and DAO address is set
-        if (!isAdmin && !DAO_ADDR.includes("REPLACE")) {
+        // Fetch DAO Rank (Only if NOT admin and DAO is deployed)
+        const adminAddr = Address.parse(ADMIN_WALLET);
+        if (!userAddr.equals(adminAddr) && !DAO_ADDR.includes("REPLACE")) {
           const rankRes = await client.runMethod(Address.parse(DAO_ADDR), "get_member_rank", [{ type: "slice", cell: userAddrCell }]);
           setMemberRank({
               score: Number(rankRes.stack.readBigNumber()),
-              rank: rankRes.stack.readString() || "Verified User"
+              rank: rankRes.stack.readString() || "Verified"
           });
         }
 
         const res = await client.runMethod(master, "get_counter");
         setCounter(Number(res.stack.readBigNumber()));
-      } catch (e) { console.log("Erika syncing..."); }
+      } catch (e) { console.log("Blockchain sync pending..."); }
     }
+    
     fetchData();
   }, [client, connected, sender.address]);
 
@@ -68,22 +71,22 @@ export function useMainContract() {
     member_rank: memberRank,
     connected,
     executeMemberReg: async () => sender.send({ to: Address.parse(DAO_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x526567, 32).endCell() }),
-    executeAnodePayment: async (t: string, id: number, p: string) => {
-      const dest = t === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
+    executeAnodePayment: async (type: string, id: number, price: string) => {
+      const destination = type === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
       return sender.send({
         to: Address.parse(userJettonWallet!),
         value: toNano("0.1"),
-        body: beginCell().storeUint(0x0f8a7ea5, 32).storeUint(0, 64).storeCoins(toNano(p)).storeAddress(Address.parse(dest)).storeAddress(sender.address!).storeBit(false).storeCoins(toNano("0.05")).storeMaybeRef(beginCell().storeUint(id, 32).endCell()).endCell()
+        body: beginCell().storeUint(0x0f8a7ea5, 32).storeUint(0, 64).storeCoins(toNano(price)).storeAddress(Address.parse(destination)).storeAddress(sender.address!).storeBit(false).storeCoins(toNano("0.05")).storeMaybeRef(beginCell().storeUint(id, 32).endCell()).endCell()
       });
     },
-    executeTalentPayment: (amt: number) => sender.send({ to: Address.parse(DAO_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x1C0F, 32).storeCoins(toNano(amt.toString())).storeAddress(sender.address!).endCell() }),
-    executeDaoVote: (id: number, s: boolean) => sender.send({ to: Address.parse(DAO_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x1c0f, 32).storeUint(id, 32).storeBit(s).endCell() }),
+    executeTalentPayment: async (amount: number) => sender.send({ to: Address.parse(DAO_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x1C0F, 32).storeCoins(toNano(amount.toString())).storeAddress(sender.address!).endCell() }),
+    executeDaoVote: async (id: number, sup: boolean) => sender.send({ to: Address.parse(DAO_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x1c0f, 32).storeUint(id, 32).storeBit(sup).endCell() }),
     sendIncrement: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x37491701, 32).storeUint(0, 64).endCell() }),
     sendDeposit: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("2.0") }),
     sendWithdraw: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x41836979, 32).storeUint(0, 64).storeCoins(toNano("1.0")).endCell() }),
     sendMint: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x15, 32).endCell() }),
     sendAirdrop: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.1"), body: beginCell().storeUint(0x16, 32).endCell() }),
-    executeAnodeStaking: (amt: string, t: number) => sender.send({ to: Address.parse(userJettonWallet!), value: toNano("0.1"), body: beginCell().storeUint(0x17, 32).storeCoins(toNano(amt)).storeUint(t, 32).endCell() }),
+    executeAnodeStaking: (amt: string, time: number) => sender.send({ to: Address.parse(userJettonWallet!), value: toNano("0.1"), body: beginCell().storeUint(0x17, 32).storeCoins(toNano(amt)).storeUint(time, 32).endCell() }),
     executeAnodeP2P: (to: string, amt: string) => sender.send({ to: Address.parse(userJettonWallet!), value: toNano("0.1"), body: beginCell().storeUint(0x0f8a7ea5, 32).storeUint(0, 64).storeCoins(toNano(amt)).storeAddress(Address.parse(to)).storeAddress(sender.address!).storeBit(false).storeCoins(toNano("0.01")).storeMaybeRef(null).endCell() })
   };
 }
