@@ -1,26 +1,16 @@
-import 'whatwg-fetch';
-import { Buffer } from 'buffer';
-import 'process/browser';
-
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 
-import App from './App.jsx';
-import './index.css';
-
-window.Buffer = Buffer;
-
-const MANIFEST_URL = "https://afro-node-dual-ecosystems-web3-dapp.netlify.app/tonconnect-manifest.json";
+// The URL must be the exact direct link to the manifest file on Netlify
+const manifestUrl = 'https://afro-nodeweb3gigeconomydapp.netlify.app/tonconnect-manifest.json';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <TonConnectUIProvider 
-      manifestUrl={MANIFEST_URL} 
-      restoreConnection={true}
-    >
+    <TonConnectUIProvider manifestUrl={manifestUrl}>
       <App />
     </TonConnectUIProvider>
   </React.StrictMode>,
-);
-// Build Trigger: Tue Jan 27 16:12:16 WAT 2026
+)

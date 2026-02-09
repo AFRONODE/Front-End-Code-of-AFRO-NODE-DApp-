@@ -1,5 +1,7 @@
 {
-  "url": "https://afronode-web3gigeconomydapp.netlify.app",
-  "name": "AFRO-NODE DApp",
-  "iconUrl": "https://afronode-web3gigeconomydapp.netlify.app/afro-node-logo.png"
+  "url": "https://afro-nodeweb3gigeconomydapp.netlify.app",
+  "name": "Afro-Node Innovation Hub",
+  "iconUrl": "https://afro-nodeweb3gigeconomydapp.netlify.app/afro-node-logo.png",
+  "termsOfUseUrl": "https://afro-nodeweb3gigeconomydapp.netlify.app/terms.txt",
+  "privacyPolicyUrl": "https://afro-nodeweb3gigeconomydapp.netlify.app/privacy.txt"
 }
