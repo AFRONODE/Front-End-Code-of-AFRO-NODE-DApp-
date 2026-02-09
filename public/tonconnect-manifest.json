@@ -1,5 +1,6 @@
 {
   "url": "https://afro-nodeweb3gigeconomydapp.netlify.app",
   "name": "AFRO-NODE DApp",
-  "iconUrl": "https://afro-nodeweb3gigeconomydapp.netlify.app/afro-node-logo.png"
+  "iconUrl": "https://afro-nodeweb3gigeconomydapp.netlify.app/afro-node-logo.png",
+  "version": "1.0.1"
 }

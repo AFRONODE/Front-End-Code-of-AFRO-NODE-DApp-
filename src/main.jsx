@@ -4,12 +4,14 @@ import App from './App'
 import './index.css'
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 
-// Dynamically generate the URL to avoid mismatch between local and production
-const manifestUrl = `${window.location.origin}/tonconnect-manifest.json`;
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <TonConnectUIProvider manifestUrl={manifestUrl}>
+    <TonConnectUIProvider 
+      manifestUrl="https://afro-nodeweb3gigeconomydapp.netlify.app/tonconnect-manifest.json"
+      actionsConfiguration={{
+        twaReturnUrl: 'https://t.me/your_bot_user_name'
+      }}
+    >
       <App />
     </TonConnectUIProvider>
   </React.StrictMode>,
