@@ -6,7 +6,7 @@ import { useTonConnect } from "./useTonConnect";
 const MASTER_ADDR = "EQBAG5qBNaTLePaCtjeHjGMcGl9tEk4o6OQXx3DO161ncnBS";
 const MARKETPLACE_ADDR = "EQBGt7POdkpvf1_U5hb65KgvlVT-3FAtban1raJvpFKV89GI";
 const DAO_ADDR = "REPLACE_WITH_HUB_DAO_FUNC_ADDR";
-const ESCROW_ADDR = "REPLACE_WITH_ESCROW_ADDR"; // PENDING DEPLOYMENT
+const ESCROW_ADDR = "REPLACE_WITH_ESCROW_ADDR"; 
 const ADMIN_WALLET = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
 
 export function useMainContract() {
@@ -19,7 +19,7 @@ export function useMainContract() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!connected || !sender.address) return;
+      if (!connected || !sender.address || !client) return;
 
       const userAddr = sender.address;
       const adminAddr = Address.parse(ADMIN_WALLET);
@@ -28,7 +28,7 @@ export function useMainContract() {
         // 1. RANK LOGIC: 201+ = 🦄 | 0-30 = Rookie
         if (userAddr.equals(adminAddr)) {
           setMemberRank({ score: 999, rank: "Admin/Owner 🦄" });
-        } else if (!DAO_ADDR.includes("REPLACE") && client) {
+        } else if (!DAO_ADDR.includes("REPLACE")) {
           const userCell = beginCell().storeAddress(userAddr).endCell();
           const rankRes = await client.runMethod(Address.parse(DAO_ADDR), "get_member_rank", [{ type: "slice", cell: userCell }]);
           const score = Number(rankRes.stack.readBigNumber());
@@ -40,9 +40,7 @@ export function useMainContract() {
           setMemberRank({ score, rank: rankLabel });
         }
 
-        if (!client) return;
-
-        // 2. JETTON DATA (MASTER + WALLET)
+        // 2. JETTON DATA (REAL-TIME FETCH)
         const master = Address.parse(MASTER_ADDR);
         const userCell = beginCell().storeAddress(userAddr).endCell();
         
@@ -51,14 +49,21 @@ export function useMainContract() {
         setUserJettonWallet(walletAddr.toString());
 
         const balanceRes = await client.runMethod(walletAddr, "get_wallet_data");
-        setJettonBalance((balanceRes.stack.readBigNumber() / BigInt(1e9)).toString());
+        // Convert NanoJettons to human readable
+        const rawBalance = balanceRes.stack.readBigNumber();
+        setJettonBalance((Number(rawBalance) / 1e9).toLocaleString());
 
         const counterRes = await client.runMethod(master, "get_counter");
         setCounter(Number(counterRes.stack.readBigNumber()));
 
-      } catch (e) { console.log("Ecosystem syncing..."); }
+      } catch (e) { 
+        console.log("Syncing blockchain data..."); 
+      }
     }
+
     fetchData();
+    const pollInterval = setInterval(fetchData, 10000); // Poll every 10 seconds
+    return () => clearInterval(pollInterval);
   }, [client, connected, sender.address]);
 
   return {
@@ -70,7 +75,6 @@ export function useMainContract() {
     jetton_balance: jettonBalance,
     member_rank: memberRank,
     connected,
-    // Unified Payment Logic for Marketplace and Escrow
     executeAnodePayment: async (type: 'marketplace' | 'escrow', id: number, price: string) => {
       if (!userJettonWallet || !sender.address) return;
       const destination = type === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
@@ -79,7 +83,7 @@ export function useMainContract() {
         to: Address.parse(userJettonWallet),
         value: toNano("0.1"),
         body: beginCell()
-          .storeUint(0x0f8a7ea5, 32)
+          .storeUint(0x0f8a7ea5, 32) // transfer op
           .storeUint(0, 64)
           .storeCoins(toNano(price))
           .storeAddress(Address.parse(destination))
@@ -91,7 +95,14 @@ export function useMainContract() {
       });
     },
     executeMemberReg: () => sender.send({ to: Address.parse(DAO_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x526567, 32).endCell() }),
+    sendIncrement: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0xc47de002, 32).endCell() }),
+    sendDeposit: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("2.0"), body: beginCell().storeUint(0x0, 32).endCell() }),
+    sendWithdraw: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x41836980, 32).endCell() }),
     sendMint: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x15, 32).endCell() }),
-    sendAirdrop: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.1"), body: beginCell().storeUint(0x16, 32).endCell() })
+    sendAirdrop: () => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.1"), body: beginCell().storeUint(0x16, 32).endCell() }),
+    executeAnodeStaking: (amount: string, time: number) => sender.send({ to: Address.parse(MASTER_ADDR), value: toNano("0.1"), body: beginCell().storeUint(0x17, 32).storeCoins(toNano(amount)).storeUint(time, 32).endCell() }),
+    executeAnodeP2P: (to: string, amount: string) => sender.send({ to: Address.parse(userJettonWallet!), value: toNano("0.1"), body: beginCell().storeUint(0x0f8a7ea5, 32).storeUint(0, 64).storeCoins(toNano(amount)).storeAddress(Address.parse(to)).storeAddress(sender.address!).storeBit(false).storeCoins(toNano("0.05")).endCell() }),
+    executeDaoVote: (proposalId: number, vote: boolean) => sender.send({ to: Address.parse(DAO_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x18, 32).storeUint(proposalId, 32).storeBit(vote).endCell() }),
+    executeTalentPayment: (amount: number) => sender.send({ to: Address.parse(DAO_ADDR), value: toNano("0.05"), body: beginCell().storeUint(0x19, 32).storeCoins(toNano(amount.toString())).endCell() })
   };
 }
