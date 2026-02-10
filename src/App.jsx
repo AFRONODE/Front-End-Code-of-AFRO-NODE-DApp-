@@ -1,4 +1,4 @@
-import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
+import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
 import { Address, toNano } from '@ton/core';
@@ -8,6 +8,7 @@ const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
 
 function App() {
   const { connected } = useTonConnect();
+  const wallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
   const [txStatus, setTxStatus] = useState("");
   const [p2pRecipient, setP2pRecipient] = useState("");
@@ -33,7 +34,7 @@ function App() {
     executeTalentPayment     
   } = useMainContract(); 
 
-  // Unified Admin Check: Triggers Admin UI if the hook identifies the Unicorn rank
+  // Admin logic based on HubDAO.fc rank
   const isAdmin = member_rank?.rank?.includes("🦄");
 
   const handleProtectedAction = (action, label) => {
@@ -77,8 +78,8 @@ function App() {
         <div className="flex items-center gap-4">
           {connected && (
             <div className="text-right hidden sm:block">
-              <p className="text-[10px] text-blue-400 font-mono">WALLET CONNECTED</p>
-              <p className="text-xs font-bold text-yellow-500">{jetton_balance} $ANODE</p>
+              <p className="text-[10px] text-blue-400 font-mono uppercase">Connected</p>
+              <p className="text-xs font-bold text-yellow-500">{jetton_balance || 0} $ANODE</p>
             </div>
           )}
           <TonConnectButton />
@@ -97,7 +98,7 @@ function App() {
           <div className="grid grid-cols-2 gap-2 mb-6 bg-slate-900 p-3 rounded-lg border border-slate-700">
             <div className="text-center border-r border-slate-700">
                <p className="text-xs text-gray-400 uppercase">Vault Status</p>
-               <p className="text-xl font-bold">{counter_value}</p>
+               <p className="text-xl font-bold">{counter_value ?? "..."}</p>
             </div>
             <div className="text-center">
                <p className="text-xs text-gray-400 uppercase">Logic</p>
