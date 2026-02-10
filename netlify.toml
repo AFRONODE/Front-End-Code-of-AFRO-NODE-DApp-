@@ -5,6 +5,12 @@
     Access-Control-Allow-Origin = "*"
 
 [[redirects]]
+  # This ensures the manifest is served as a file, not a route
+  from = "/tonconnect-manifest.json"
+  to = "/tonconnect-manifest.json"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
