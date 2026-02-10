@@ -4,8 +4,8 @@ import App from './App'
 import './index.css'
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 
-// Added a timestamp to force the wallet to fetch the freshest manifest
-const manifestUrl = "https://afro-nodeweb3gigeconomydapp.netlify.app/tonconnect-manifest.json?v=" + Date.now();
+// Using a hardcoded Date string to bust any previous browser/wallet cache
+const manifestUrl = "https://afro-nodeweb3gigeconomydapp.netlify.app/tonconnect-manifest.json?v=2026_FINAL";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <TonConnectUIProvider manifestUrl={manifestUrl}>
