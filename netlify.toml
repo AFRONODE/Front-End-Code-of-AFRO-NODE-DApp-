@@ -5,7 +5,7 @@
     Access-Control-Allow-Origin = "*"
 
 [[redirects]]
-  # This ensures the manifest is served as a file, not a route
+  # Ensure the manifest is prioritized over SPA routing
   from = "/tonconnect-manifest.json"
   to = "/tonconnect-manifest.json"
   status = 200
