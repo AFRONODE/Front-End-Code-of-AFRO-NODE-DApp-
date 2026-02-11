@@ -5,10 +5,11 @@
     Access-Control-Allow-Origin = "*"
 
 [[redirects]]
-  # Ensure the manifest is prioritized over SPA routing
+  # This line is the most important: it stops the "Blue Screen" from hiding the JSON
   from = "/tonconnect-manifest.json"
   to = "/tonconnect-manifest.json"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
