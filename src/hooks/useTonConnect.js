@@ -1,21 +1,12 @@
-import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
-import { CHAIN } from "@tonconnect/protocol";
+import { useTonConnectUI } from '@tonconnect/ui-react';
 
-/**
- * @dev Hook for managing TON connection state and wallet data
- */
 export function useTonConnect() {
   const [tonConnectUI] = useTonConnectUI();
-  const wallet = useTonWallet();
 
   return {
-    connected: !!wallet?.account?.address,
-    walletAddress: wallet?.account?.address ?? null,
-    network: wallet?.account?.chain ?? null,
-    isTestnet: wallet?.account?.chain === CHAIN.TESTNET,
     sender: {
       send: async (args) => {
-        return tonConnectUI.sendTransaction({
+        tonConnectUI.sendTransaction({
           messages: [
             {
               address: args.to.toString(),
@@ -23,9 +14,10 @@ export function useTonConnect() {
               payload: args.body?.toBoc().toString('base64'),
             },
           ],
-          validUntil: Math.floor(Date.now() / 1000) + 60,
+          validUntil: Date.now() + 5 * 60 * 1000, // 5 minutes
         });
       },
     },
+    connected: tonConnectUI.connected,
   };
 }
