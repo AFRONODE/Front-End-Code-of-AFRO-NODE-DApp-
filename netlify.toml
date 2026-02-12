@@ -3,9 +3,9 @@
   [headers.values]
     Content-Type = "application/json"
     Access-Control-Allow-Origin = "*"
+    Cache-Control = "no-cache, no-store, must-revalidate"
 
 [[redirects]]
-  # This line is the most important: it stops the "Blue Screen" from hiding the JSON
   from = "/tonconnect-manifest.json"
   to = "/tonconnect-manifest.json"
   status = 200
