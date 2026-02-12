@@ -4,8 +4,8 @@ import App from './App'
 import './index.css'
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 
-// Added a unique ID to the manifest URL to force wallets to re-verify
-const manifestUrl = "https://afro-nodedappweb3gigeconomyprotocol.netlify.app/tonconnect-manifest.json?v=2026_FINAL_STABLE";
+// The ?v= unique string forces Tonkeeper to re-download the manifest
+const manifestUrl = "https://afro-nodedappweb3gigeconomyprotocol.netlify.app/tonconnect-manifest.json?v=STABLE_FINAL_99";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <TonConnectUIProvider manifestUrl={manifestUrl}>
