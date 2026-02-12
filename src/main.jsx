@@ -4,7 +4,8 @@ import App from './App'
 import './index.css'
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 
-const manifestUrl = "https://afro-nodedappweb3gigeconomyprotocol.netlify.app/tonconnect-manifest.json";
+// Relative path is best for Netlify apps
+const manifestUrl = "/tonconnect-manifest.json";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <TonConnectUIProvider manifestUrl={manifestUrl}>
