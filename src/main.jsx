@@ -4,8 +4,7 @@ import App from './App'
 import './index.css'
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 
-// The ?v= unique string forces Tonkeeper to re-download the manifest
-const manifestUrl = "https://afro-nodedappweb3gigeconomyprotocol.netlify.app/tonconnect-manifest.json?v=STABLE_FINAL_99";
+const manifestUrl = "https://afro-nodedappweb3gigeconomyprotocol.netlify.app/tonconnect-manifest.json?v=RESET_2026";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <TonConnectUIProvider manifestUrl={manifestUrl}>
