@@ -25,10 +25,10 @@ export function useMainContract() {
       const adminAddr = Address.parse(ADMIN_WALLET);
 
       try {
-        // 1. RANK LOGIC: 201+ = 🦄 | 0-30 = Rookie
-        if (userAddr.equals(adminAddr)) {
+        // 1. ADMIN CHECK: Comparing Raw Hex to ignore 0Q/kQ/EQ prefix differences
+        if (userAddr.toRawString() === adminAddr.toRawString()) {
           setMemberRank({ score: 999, rank: "Admin/Owner 🦄" });
-        } else if (!DAO_ADDR.includes("REPLACE")) {
+        } else if (DAO_ADDR !== "REPLACE_WITH_HUB_DAO_FUNC_ADDR") {
           const userCell = beginCell().storeAddress(userAddr).endCell();
           const rankRes = await client.runMethod(Address.parse(DAO_ADDR), "get_member_rank", [{ type: "slice", cell: userCell }]);
           const score = Number(rankRes.stack.readBigNumber());
@@ -49,7 +49,6 @@ export function useMainContract() {
         setUserJettonWallet(walletAddr.toString());
 
         const balanceRes = await client.runMethod(walletAddr, "get_wallet_data");
-        // Convert NanoJettons to human readable
         const rawBalance = balanceRes.stack.readBigNumber();
         setJettonBalance((Number(rawBalance) / 1e9).toLocaleString());
 
@@ -57,12 +56,12 @@ export function useMainContract() {
         setCounter(Number(counterRes.stack.readBigNumber()));
 
       } catch (e) { 
-        console.log("Syncing blockchain data..."); 
+        console.log("Syncing blockchain data (Waiting for DAO/Escrow deployment)..."); 
       }
     }
 
     fetchData();
-    const pollInterval = setInterval(fetchData, 10000); // Poll every 10 seconds
+    const pollInterval = setInterval(fetchData, 10000);
     return () => clearInterval(pollInterval);
   }, [client, connected, sender.address]);
 
@@ -77,16 +76,17 @@ export function useMainContract() {
     connected,
     executeAnodePayment: async (type: 'marketplace' | 'escrow', id: number, price: string) => {
       if (!userJettonWallet || !sender.address) return;
-      const destination = type === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
-      
+      const dest = type === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
+      if (dest.includes("REPLACE")) return alert("Contract not deployed yet!");
+
       return sender.send({
         to: Address.parse(userJettonWallet),
         value: toNano("0.1"),
         body: beginCell()
-          .storeUint(0x0f8a7ea5, 32) // transfer op
+          .storeUint(0x0f8a7ea5, 32)
           .storeUint(0, 64)
           .storeCoins(toNano(price))
-          .storeAddress(Address.parse(destination))
+          .storeAddress(Address.parse(dest))
           .storeAddress(sender.address)
           .storeBit(false)
           .storeCoins(toNano("0.05"))
