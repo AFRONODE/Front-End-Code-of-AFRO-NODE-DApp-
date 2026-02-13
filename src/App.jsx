@@ -2,7 +2,7 @@ import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
 import { Address, toNano } from '@ton/core';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
 
@@ -34,8 +34,17 @@ function App() {
     executeTalentPayment     
   } = useMainContract(); 
 
-  // Admin logic based on HubDAO.fc rank
-  const isAdmin = member_rank?.rank?.includes("🦄");
+  // FAIL-SAFE ADMIN CHECK: Compare Raw Hex directly in UI
+  const isAdmin = useMemo(() => {
+    if (!wallet?.account?.address) return false;
+    try {
+      const currentRaw = Address.parse(wallet.account.address).toRawString();
+      const adminRaw = Address.parse(ADMIN_WALLET_ADDRESS).toRawString();
+      return currentRaw === adminRaw || member_rank?.rank?.includes("🦄");
+    } catch (e) {
+      return false;
+    }
+  }, [wallet, member_rank]);
 
   const handleProtectedAction = (action, label) => {
     if (!connected) {
@@ -60,7 +69,7 @@ function App() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-900">
         <div className="text-center animate-bounce text-blue-400 font-bold">
-          🌍 INITIALIZING AFRO-NODE ECOSYSTEM...
+          🌍 INITIALIZING AFRO-NODE...
         </div>
       </div>
     );
@@ -141,8 +150,8 @@ function App() {
           <div className="flex justify-between items-start mb-2">
             <h3 className="text-xl font-bold text-orange-400">Innovation Hub DAO 💡</h3>
             <div className="text-right">
-                <p className="text-[8px] text-gray-400 uppercase">Skill: {member_rank?.score || 0}</p>
-                <p className="text-[10px] font-bold text-white uppercase">{member_rank?.rank || "Guest"}</p>
+                <p className="text-[8px] text-gray-400 uppercase">Skill: {isAdmin ? 999 : (member_rank?.score || 0)}</p>
+                <p className="text-[10px] font-bold text-white uppercase">{isAdmin ? "Admin/Owner 🦄" : (member_rank?.rank || "Guest")}</p>
             </div>
           </div>
           <p className="text-[10px] text-gray-400 mb-4 italic">* Talent Remittance: 15% Treasury / 85% Talent payout.</p>
