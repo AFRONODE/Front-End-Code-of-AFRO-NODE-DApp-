@@ -4,7 +4,8 @@ import App from './App.jsx'
 import './index.css'
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 
-const manifestUrl = 'https://afronode-web3gigeconomydapp.netlify.app/tonconnect-manifest.json';
+// Automatically detects your current Netlify URL to ensure the manifest is found
+const manifestUrl = `${window.location.origin}/tonconnect-manifest.json`;
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
