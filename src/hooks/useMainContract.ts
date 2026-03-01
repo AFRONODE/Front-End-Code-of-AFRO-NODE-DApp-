@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Address, toNano, beginCell } from "@ton/core";
+import { Address, toNano, beginCell, Cell } from "@ton/core";
 import { useTonClient } from "./useTonClient";
 import { useTonConnect } from "./useTonConnect";
 
@@ -7,6 +7,7 @@ const MASTER_ADDR = "EQBAG5qBNaTLePaCtjeHjGMcGl9tEk4o6OQXx3DO161ncnBS";
 const MARKETPLACE_ADDR = "EQBGt7POdkpvf1_U5hb65KgvlVT-3FAtban1raJvpFKV89GI";
 const DAO_ADDR = "REPLACE_WITH_HUB_DAO_FUNC_ADDR";
 const ESCROW_ADDR = "REPLACE_WITH_ESCROW_ADDR"; 
+const VESTING_ADDR = "REPLACE_WITH_VESTING_ADDR";
 const ADMIN_WALLET = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
 
 export function useMainContract() {
@@ -25,7 +26,7 @@ export function useMainContract() {
       const adminAddr = Address.parse(ADMIN_WALLET);
 
       try {
-        // 1. ADMIN CHECK: Comparing Raw Hex to ignore 0Q/kQ/EQ prefix differences
+        // 1. ADMIN CHECK
         if (userAddr.toRawString() === adminAddr.toRawString()) {
           setMemberRank({ score: 999, rank: "Admin/Owner 🦄" });
         } else if (DAO_ADDR !== "REPLACE_WITH_HUB_DAO_FUNC_ADDR") {
@@ -40,7 +41,7 @@ export function useMainContract() {
           setMemberRank({ score, rank: rankLabel });
         }
 
-        // 2. JETTON DATA (REAL-TIME FETCH)
+        // 2. JETTON DATA
         const master = Address.parse(MASTER_ADDR);
         const userCell = beginCell().storeAddress(userAddr).endCell();
         
@@ -56,7 +57,7 @@ export function useMainContract() {
         setCounter(Number(counterRes.stack.readBigNumber()));
 
       } catch (e) { 
-        console.log("Syncing blockchain data (Waiting for DAO/Escrow deployment)..."); 
+        console.log("Syncing blockchain data (Waiting for deployments)..."); 
       }
     }
 
@@ -70,10 +71,42 @@ export function useMainContract() {
     marketplace_address: MARKETPLACE_ADDR,
     dao_address: DAO_ADDR,
     escrow_address: ESCROW_ADDR,
+    vesting_address: VESTING_ADDR,
     counter_value: counter,
     jetton_balance: jettonBalance,
     member_rank: memberRank,
     connected,
+    
+    // VESTING PROTOCOL ACTIONS
+    executeVestingClaim: async (totalAllocation: string, proofBoc: string) => {
+      if (VESTING_ADDR.includes("REPLACE")) return alert("Vesting contract not deployed yet!");
+      
+      // Parse the proof BOC string into a Cell
+      const proofCell = Cell.fromBase64(proofBoc);
+
+      return sender.send({
+        to: Address.parse(VESTING_ADDR),
+        value: toNano("0.15"), // Gas for cross-contract jetton transfer
+        body: beginCell()
+          .storeUint(0x436c61696d, 32) // "Claim" in hex
+          .storeCoins(toNano(totalAllocation))
+          .storeRef(proofCell)
+          .endCell()
+      });
+    },
+
+    executeAdminTriggerRelease: async () => {
+        if (VESTING_ADDR.includes("REPLACE")) return alert("Vesting contract not deployed yet!");
+        // Note: Admin Trigger requires target, allocation, proof, and seqno. 
+        // This is a placeholder for the master trigger release call.
+        return alert("Please provide target details in the UI for specific release.");
+    },
+
+    executeKillVesting: async () => {
+        return alert("Vesting Kill requires specific member address and admin signature.");
+    },
+
+    // EXISTING LOGIC (100% UNTOUCHED)
     executeAnodePayment: async (type: 'marketplace' | 'escrow', id: number, price: string) => {
       if (!userJettonWallet || !sender.address) return;
       const dest = type === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
