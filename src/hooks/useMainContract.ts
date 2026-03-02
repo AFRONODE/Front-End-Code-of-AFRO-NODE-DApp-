@@ -21,46 +21,33 @@ export function useMainContract() {
   useEffect(() => {
     async function fetchData() {
       if (!connected || !sender.address || !client) return;
-
       const userAddr = sender.address;
       const adminAddr = Address.parse(ADMIN_WALLET);
 
       try {
-        // 1. ADMIN CHECK
         if (userAddr.toRawString() === adminAddr.toRawString()) {
           setMemberRank({ score: 999, rank: "Admin/Owner 🦄" });
         } else if (DAO_ADDR !== "REPLACE_WITH_HUB_DAO_FUNC_ADDR") {
           const userCell = beginCell().storeAddress(userAddr).endCell();
           const rankRes = await client.runMethod(Address.parse(DAO_ADDR), "get_member_rank", [{ type: "slice", cell: userCell }]);
           const score = Number(rankRes.stack.readBigNumber());
-          
-          let rankLabel = "Member";
-          if (score >= 201) rankLabel = "Unicorn 🦄";
-          else if (score <= 30) rankLabel = "Rookie";
-          
+          let rankLabel = score >= 201 ? "Unicorn 🦄" : (score <= 30 ? "Rookie" : "Member");
           setMemberRank({ score, rank: rankLabel });
         }
 
-        // 2. JETTON DATA
         const master = Address.parse(MASTER_ADDR);
         const userCell = beginCell().storeAddress(userAddr).endCell();
-        
         const walletRes = await client.runMethod(master, "get_wallet_address", [{ type: "slice", cell: userCell }]);
         const walletAddr = walletRes.stack.readAddress();
         setUserJettonWallet(walletAddr.toString());
 
         const balanceRes = await client.runMethod(walletAddr, "get_wallet_data");
-        const rawBalance = balanceRes.stack.readBigNumber();
-        setJettonBalance((Number(rawBalance) / 1e9).toLocaleString());
+        setJettonBalance((Number(balanceRes.stack.readBigNumber()) / 1e9).toLocaleString());
 
         const counterRes = await client.runMethod(master, "get_counter");
         setCounter(Number(counterRes.stack.readBigNumber()));
-
-      } catch (e) { 
-        console.log("Syncing blockchain data (Waiting for deployments)..."); 
-      }
+      } catch (e) { console.log("Syncing..."); }
     }
-
     fetchData();
     const pollInterval = setInterval(fetchData, 10000);
     return () => clearInterval(pollInterval);
@@ -77,18 +64,32 @@ export function useMainContract() {
     member_rank: memberRank,
     connected,
     
-    // VESTING PROTOCOL ACTIONS
-    executeVestingClaim: async (totalAllocation: string, proofBoc: string) => {
-      if (VESTING_ADDR.includes("REPLACE")) return alert("Vesting contract not deployed yet!");
-      
-      // Parse the proof BOC string into a Cell
-      const proofCell = Cell.fromBase64(proofBoc);
+    executeCreateTask: async (description: string, totalAmount: string) => {
+      if (!userJettonWallet || !sender.address || ESCROW_ADDR.includes("REPLACE")) return;
+      return sender.send({
+        to: Address.parse(userJettonWallet),
+        value: toNano("0.1"),
+        body: beginCell()
+          .storeUint(0x0f8a7ea5, 32)
+          .storeUint(0, 64)
+          .storeCoins(toNano(totalAmount))
+          .storeAddress(Address.parse(ESCROW_ADDR))
+          .storeAddress(sender.address)
+          .storeBit(false)
+          .storeCoins(toNano("0.05"))
+          .storeMaybeRef(beginCell().storeUint(0, 32).storeStringTail(description).endCell())
+          .endCell()
+      });
+    },
 
+    executeVestingClaim: async (totalAllocation: string, proofBoc: string) => {
+      if (VESTING_ADDR.includes("REPLACE")) return;
+      const proofCell = Cell.fromBase64(proofBoc);
       return sender.send({
         to: Address.parse(VESTING_ADDR),
-        value: toNano("0.15"), // Gas for cross-contract jetton transfer
+        value: toNano("0.15"),
         body: beginCell()
-          .storeUint(0x436c61696d, 32) // "Claim" in hex
+          .storeUint(0x436c61696d, 32)
           .storeCoins(toNano(totalAllocation))
           .storeRef(proofCell)
           .endCell()
@@ -96,22 +97,27 @@ export function useMainContract() {
     },
 
     executeAdminTriggerRelease: async () => {
-        if (VESTING_ADDR.includes("REPLACE")) return alert("Vesting contract not deployed yet!");
-        // Note: Admin Trigger requires target, allocation, proof, and seqno. 
-        // This is a placeholder for the master trigger release call.
-        return alert("Please provide target details in the UI for specific release.");
+        if (VESTING_ADDR.includes("REPLACE")) return;
+        return sender.send({
+            to: Address.parse(VESTING_ADDR),
+            value: toNano("0.1"),
+            body: beginCell().storeUint(0x52656c65617365, 32).endCell() 
+        });
     },
 
     executeKillVesting: async () => {
-        return alert("Vesting Kill requires specific member address and admin signature.");
+        if (VESTING_ADDR.includes("REPLACE")) return;
+        return sender.send({
+            to: Address.parse(VESTING_ADDR),
+            value: toNano("0.1"),
+            body: beginCell().storeUint(0xffff, 32).endCell() 
+        });
     },
 
-    // EXISTING LOGIC (100% UNTOUCHED)
     executeAnodePayment: async (type: 'marketplace' | 'escrow', id: number, price: string) => {
       if (!userJettonWallet || !sender.address) return;
       const dest = type === 'marketplace' ? MARKETPLACE_ADDR : ESCROW_ADDR;
-      if (dest.includes("REPLACE")) return alert("Contract not deployed yet!");
-
+      if (dest.includes("REPLACE")) return;
       return sender.send({
         to: Address.parse(userJettonWallet),
         value: toNano("0.1"),
