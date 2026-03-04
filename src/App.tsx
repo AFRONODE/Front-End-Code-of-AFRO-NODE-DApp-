@@ -1,3 +1,4 @@
+cat > src/App.tsx << 'EOF'
 import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
@@ -342,3 +343,4 @@ function App() {
 }
 
 export default App;
+EOF
