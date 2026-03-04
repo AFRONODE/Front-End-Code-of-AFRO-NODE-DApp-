@@ -5,7 +5,6 @@ import { Address, toNano } from '@ton/core';
 import { useState, useMemo, useEffect } from 'react';
 
 const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
-const SAFT_RECIPIENT_WALLET = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u"; 
 
 function App() {
   const { connected } = useTonConnect();
@@ -21,13 +20,19 @@ function App() {
   const [jobDescription, setJobDescription] = useState("");
   const [jobBudget, setJobBudget] = useState("");
 
+  // UPGRADED: Posted Gigs (for rendering in Client Portal + marketplace visibility)
+  const [postedGigs, setPostedGigs] = useState([]);
+
+  // UPGRADED: SAFT Recipient (editable by Admin for Mainnet USDT wallet)
+  const [saftRecipient, setSaftRecipient] = useState("0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u");
+
   // UI State
   const [showVesting, setShowVesting] = useState(false);
   const [showBusinessNote, setShowBusinessNote] = useState(false);
   const [showVision, setShowVision] = useState(false);
   const [showContracts, setShowContracts] = useState(false);
   const [merkleProof, setMerkleProof] = useState("");
-  const [prices, setPrices] = useState({ ton: "0.00", btc: "0.00", eth: "0.00" });
+  const [prices, setPrices] = useState({ ton: "0.00", btc: "0.00", eth: "0.00", usdt: "1.00" });
 
   const {
     contract_address,
@@ -48,18 +53,20 @@ function App() {
     executeVestingClaim,
     executeAdminTriggerRelease,
     executeKillVesting,
-    executeCreateTask // Placeholder for the hook update you will provide
+    executeCreateTask,
+    anodeBalance   // Already implemented in hooks – now displayed on wallet connection
   } = useMainContract(); 
 
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,bitcoin,ethereum&vs_currencies=usd');
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,bitcoin,ethereum,tether&vs_currencies=usd');
         const data = await res.json();
         setPrices({
           ton: data['the-open-network'].usd.toFixed(2),
           btc: data['bitcoin'].usd.toLocaleString(),
-          eth: data['ethereum'].usd.toLocaleString()
+          eth: data['ethereum'].usd.toLocaleString(),
+          usdt: data['tether']?.usd.toFixed(2) || "1.00"
         });
       } catch (e) { console.error("Price fetch failed"); }
     };
@@ -81,11 +88,11 @@ function App() {
       setTxStatus("Please connect your wallet.");
       return;
     }
-    setTxStatus("Confirming " + label + "...");
+    setTxStatus(`Processing ${label}... Please wait while we confirm on the blockchain.`);
     action();
   };
 
-  // UPGRADED: Functional Escrow Task Logic
+  // UPGRADED: Functional Escrow Task Logic + render posted gigs
   const handlePostTask = () => {
     if (!jobBudget || isNaN(Number(jobBudget)) || !jobDescription) {
       setTxStatus("Please enter valid Job Details & Budget.");
@@ -97,24 +104,21 @@ function App() {
     
     handleProtectedAction(() => {
       executeCreateTask(jobDescription, totalToLock.toString());
+      setPostedGigs(prev => [...prev, {
+        id: Date.now(),
+        description: jobDescription,
+        budget: totalToLock.toFixed(0)
+      }]);
       setTxStatus(`Initiating Escrow: ${totalToLock} $ANODE (Incl. 10% Fee)`);
     }, "Escrow Task Creation");
   };
 
+  // UPGRADED: SAFT now USDT-only (manual send to configurable Mainnet address)
   const handleSaftPurchase = () => {
     if (!saftBuyQty || isNaN(Number(saftBuyQty))) return;
-    const tonEquivalent = (Number(saftBuyQty) * 0.02) / Number(prices.ton || 5);
-    handleProtectedAction(async () => {
-      setTxStatus("KYC/Whitelist Auto-Verifying...");
-      setTimeout(() => {
-        tonConnectUI.sendTransaction({
-          validUntil: Math.floor(Date.now() / 1000) + 360,
-          messages: [{
-            address: SAFT_RECIPIENT_WALLET,
-            amount: toNano(tonEquivalent.toFixed(4)).toString(),
-          }]
-        });
-      }, 1500);
+    const usdtAmount = (Number(saftBuyQty) * 0.02).toFixed(4);
+    handleProtectedAction(() => {
+      setTxStatus(`KYC/Whitelist Auto-Verifying... Please send ${usdtAmount} USDT (Mainnet) to: ${saftRecipient}`);
     }, "SAFT Purchase");
   };
 
@@ -166,6 +170,8 @@ function App() {
         <span className="text-blue-400">TON: ${prices.ton}</span>
         <span className="text-orange-400">BTC: ${prices.btc}</span>
         <span className="text-purple-400">ETH: ${prices.eth}</span>
+        <span className="text-green-400">USDT: ${prices.usdt}</span>
+        <span className="text-yellow-400">$ANODE: Coming Soon (Testnet)</span>
       </div>
 
       {/* HEADER */}
@@ -174,7 +180,14 @@ function App() {
           <img src="/afro-node-logo.png" alt="AFRO-NODE" className="h-10 w-auto" />
           <h1 className="text-xl font-black text-blue-500 uppercase tracking-tighter">AFRO-NODE</h1>
         </div>
-        <TonConnectButton />
+        <div className="flex items-center gap-4">
+          {connected && (
+            <div className="text-[10px] font-mono bg-emerald-900/80 px-3 py-1 rounded-full border border-emerald-700">
+              $ANODE: {anodeBalance ?? "0"}
+            </div>
+          )}
+          <TonConnectButton />
+        </div>
       </div>
 
       {/* MARQUEE PROMPT */}
@@ -190,7 +203,7 @@ function App() {
           onClick={() => setShowVision(!showVision)}
           className="w-full bg-blue-900/40 hover:bg-blue-800/60 p-4 rounded-xl font-bold transition-all border border-blue-800 text-sm"
         >
-          {showVision ? 'VIEW PROTOCOL VISION' : 'CLOSE PROTOCOL VISION'}
+          {showVision ? 'CLOSE PROTOCOL VISION' : 'VIEW PROTOCOL VISION'}
         </button>
         {showVision && (
           <div className="mt-2 bg-slate-800 p-6 rounded-xl border border-blue-500/30 animate-in fade-in zoom-in duration-300">
@@ -325,12 +338,21 @@ function App() {
                   <img src="/anode-token.png" alt="ANODE" className="h-6 w-6" />
                   <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest">$ANODE TOKENOMICS</h3>
                 </div>
+                <p className="text-[10px] text-cyan-400 font-mono mb-3">MAXIMUM TOTAL SUPPLY: 1,000,000,000 $ANODE</p>
                 <div className="executive-pie"></div>
               </div>
               <div className="flex-1 grid grid-cols-2 gap-2 w-full text-[10px]">
-                  {[{c:'bg-blue-500',l:'Community',p:'35%'},{c:'bg-emerald-500',l:'Treasury',p:'25%'},{c:'bg-indigo-500',l:'Team',p:'18%'},{c:'bg-amber-500',l:'SAFT',p:'10%'}].map((x,i)=>(
-                    <div key={i} className="bg-slate-900 p-2 rounded flex justify-between"><span className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${x.c}`}></div>{x.l}</span><span className="font-bold text-cyan-400">{x.p}</span></div>
-                  ))}
+                {[
+                  {c:'bg-blue-500',l:'Community',p:'35% (350M)'},
+                  {c:'bg-emerald-500',l:'Ecosystem & Treasury',p:'25% (250M)'},
+                  {c:'bg-amber-500',l:'Private & Strategic SAFT',p:'10% (100M)'},
+                  {c:'bg-indigo-500',l:'Team & Advisor',p:'18% (180M)'},
+                  {c:'bg-pink-500',l:'KOLs, Promoters & Marketers',p:'5% (50M)'},
+                  {c:'bg-cyan-500',l:'DEX Liquidity',p:'5% (50M)'},
+                  {c:'bg-red-500',l:'Public IDO',p:'2% (20M)'}
+                ].map((x,i)=>(
+                  <div key={i} className="bg-slate-900 p-2 rounded flex justify-between"><span className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${x.c}`}></div>{x.l}</span><span className="font-bold text-cyan-400">{x.p}</span></div>
+                ))}
               </div>
             </div>
             <div className="text-xs text-gray-300 space-y-4">
@@ -386,15 +408,47 @@ function App() {
                 Post Task & Lock Escrow
              </button>
              <p className="text-[8px] text-center text-gray-500 uppercase">10% Escrow Fee applied to budget</p>
+
+             {/* UPGRADED: Render published gigs (visible to all users + HUB talents) */}
+             <div className="mt-6 pt-4 border-t border-slate-700">
+               <h4 className="uppercase text-blue-400 text-xs font-bold mb-3">Published Gigs (Live for HUB Talents & Guests)</h4>
+               <div className="space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-2">
+                 {postedGigs.length === 0 ? (
+                   <p className="text-xs text-gray-500 italic">No gigs posted yet – be the first to publish!</p>
+                 ) : (
+                   postedGigs.map((gig) => (
+                     <div key={gig.id} className="bg-slate-900 p-3 rounded-xl text-xs border border-blue-800/50">
+                       <p className="font-bold text-blue-300 leading-tight">{gig.description}</p>
+                       <p className="text-emerald-400 mt-1">Budget: {gig.budget} $ANODE (incl. 10% fee)</p>
+                       <p className="text-[10px] text-gray-500 mt-1">Open for claims by verified Innovation HUB DAO Talents</p>
+                     </div>
+                   ))
+                 )}
+               </div>
+             </div>
           </div>
         </div>
         <div className="bg-slate-800 p-6 rounded-2xl border border-amber-600/40 shadow-lg">
           <h3 className="text-lg font-bold text-amber-500 mb-4">SAFT Investor Portal</h3>
           <div className="space-y-2">
-             <p className="text-[10px] text-gray-400">Fixed SAFT Price: $0.02 / $ANODE</p>
+             <p className="text-[10px] text-gray-400">Fixed SAFT Price: $0.02 / $ANODE (Pay in USDT only)</p>
              <input type="number" placeholder="Enter Amount of $ANODE" className="w-full bg-slate-900 p-3 rounded-xl text-xs outline-none border border-amber-900/40" value={saftBuyQty} onChange={(e) => setSaftBuyQty(e.target.value)} />
-             <button onClick={handleSaftPurchase} className="w-full bg-amber-600 py-3 rounded-xl font-bold text-xs uppercase">Buy $ANODE</button>
-             <p className="text-[8px] text-center text-amber-700 uppercase">Automatic Whitelist Verification Active</p>
+             <button onClick={handleSaftPurchase} className="w-full bg-amber-600 py-3 rounded-xl font-bold text-xs uppercase">Buy $ANODE via USDT SAFT</button>
+             <p className="text-[8px] text-center text-amber-700 uppercase">Send USDT on TON Mainnet to the recipient address after verification</p>
+
+             {/* UPGRADED: Admin-only editable Mainnet USDT recipient */}
+             {isAdmin && (
+               <div className="pt-4 border-t border-amber-900/40">
+                 <p className="text-[10px] text-amber-400 mb-1">ADMIN: Set Mainnet USDT Recipient Wallet</p>
+                 <input 
+                   type="text" 
+                   value={saftRecipient} 
+                   onChange={(e) => setSaftRecipient(e.target.value)}
+                   className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40 font-mono"
+                   placeholder="Mainnet Tonkeeper address"
+                 />
+               </div>
+             )}
           </div>
         </div>
       </div>
@@ -429,6 +483,18 @@ function App() {
         </div>
       </div>
 
+      {/* CONTACT & SUPPORT */}
+      <div className="mb-6 bg-slate-800 p-6 rounded-2xl border border-teal-500/30">
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="text-lg font-bold text-teal-400">🎧 Contact & Support</h3>
+          <span className="text-4xl animate-bounce">🎧</span>
+        </div>
+        <div className="text-sm space-y-3">
+          <p>Founder &amp; CEO: <a href="mailto:afronodedapp@gmail.com" className="text-teal-400 hover:underline">afronodedapp@gmail.com</a></p>
+          <p>Join Telegram Pilot Community: <a href="https://t.me/afronodeWeb3" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">t.me/afronodeWeb3</a></p>
+        </div>
+      </div>
+
       {/* ADMIN CONTROL */}
       {isAdmin && (
         <div className="bg-red-950/20 p-6 rounded-2xl border-2 border-dashed border-red-600/30 mb-10">
@@ -445,13 +511,16 @@ function App() {
       )}
 
       {txStatus && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-blue-600 px-8 py-3 rounded-full shadow-2xl z-50">
+        <div 
+          onClick={() => setTxStatus("")} 
+          className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-blue-600 px-8 py-3 rounded-full shadow-2xl z-50 cursor-pointer hover:bg-blue-500 transition-colors"
+        >
           <p className="text-xs font-black tracking-widest animate-pulse">📡 {txStatus}</p>
         </div>
       )}
 
       <footer className="mt-10 text-center text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-10">
-        AFRO-NODE v1.0.4 | Dual-Engine: TACT & FUNC | 2026
+        AFRO-NODE v1.0.4 | Dual-Engine: TACT & FUNC | 2026 | <a href="https://x.com/AfroDapp8382" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">X @AfroDapp8382</a>
       </footer>
     </div>
   );
