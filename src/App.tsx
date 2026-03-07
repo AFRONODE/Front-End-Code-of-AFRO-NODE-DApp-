@@ -32,7 +32,9 @@ function App() {
   const [showVision, setShowVision] = useState(false);
   const [showContracts, setShowContracts] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const [showCommunity, setShowCommunity] = useState(false);
   const [merkleProof, setMerkleProof] = useState("");
+  const [saftMerkleProof, setSaftMerkleProof] = useState("");
 
   const [prices, setPrices] = useState({ ton: "0.00", btc: "0.00", eth: "0.00", usdt: "1.00" });
 
@@ -45,6 +47,13 @@ function App() {
     { id: 5, title: "Tokenomics Design", price: "250 $ANODE" },
     { id: 6, title: "Full-Stack Web2 Services", price: "100 $ANODE" },
   ]);
+
+  const [newItemTitle, setNewItemTitle] = useState("");
+  const [newItemPrice, setNewItemPrice] = useState("");
+
+  const [saftInvestors, setSaftInvestors] = useState([]); // Dummy state for SAFT investors
+  const [saftSearchAddress, setSaftSearchAddress] = useState("");
+  const [saftInvestorInfo, setSaftInvestorInfo] = useState(null);
 
   const {
     contract_address,
@@ -158,31 +167,36 @@ function App() {
     handleProtectedAction(() => {
       setTxStatus(
         `KYC/Whitelist verified.\n\n` +
-        `Send exactly \( {usdtToPay} USDT to:\n \){saftRecipient}\n\n` +
+        `Send exactly ${usdtToPay} USDT to:\n ${saftRecipient}\n\n` +
         `Multi-sig Tonkeeper wallet.\n` +
         `${agreementNote}\n\n` +
         `Forward tx hash to afronodedapp@gmail.com`
       );
+      // Simulate adding to investors list (in real, this would be from contract)
+      setSaftInvestors(prev => [...prev, { address: wallet?.account?.address, amount: qty }]);
     }, "SAFT Purchase");
   };
 
-  const addMarketItem = (title, price) => {
-    if (!isAdmin || isEditLocked) return;
-    const newItem = { id: Date.now(), title, price: `${price} $ANODE` };
-    setMarketplaceItems([...marketplaceItems, newItem]);
-    handleProtectedAction(() => executeAddMarketItem(title, price), "Add Market Item");
+  const handleSaftSearch = () => {
+    const found = saftInvestors.find(inv => inv.address === saftSearchAddress);
+    setSaftInvestorInfo(found || null);
   };
 
-  const updateMarketPrice = (id, newPrice) => {
-    if (!isAdmin || isEditLocked) return;
-    setMarketplaceItems(marketplaceItems.map(item => item.id === id ? { ...item, price: `${newPrice} $ANODE` } : item));
-    handleProtectedAction(() => executeUpdateMarketPrice(id, newPrice), "Update Price");
+  const handleAddMarketItem = () => {
+    if (!newItemTitle || !newItemPrice || isEditLocked) return;
+    addMarketItem(newItemTitle, newItemPrice);
+    setNewItemTitle("");
+    setNewItemPrice("");
   };
 
-  const removeMarketItem = (id) => {
-    if (!isAdmin || isEditLocked) return;
-    setMarketplaceItems(marketplaceItems.filter(item => item.id !== id));
-    handleProtectedAction(() => executeRemoveMarketItem(id), "Remove Item");
+  const handleUpdateMarketPrice = (id, newPrice) => {
+    if (isEditLocked) return;
+    updateMarketPrice(id, newPrice);
+  };
+
+  const handleRemoveMarketItem = (id) => {
+    if (isEditLocked) return;
+    removeMarketItem(id);
   };
 
   const vestingTable = [
@@ -224,11 +238,17 @@ function App() {
       `}</style>
 
       <div className="fixed top-0 left-0 w-full bg-black/40 backdrop-blur-md z-50 border-b border-slate-700 p-1 flex justify-around text-[10px] font-mono">
-        <span className="text-blue-400">TON: \[ {prices.ton}</span>
-        <span className="text-orange-400">BTC: \]{prices.btc}</span>
-        <span className="text-purple-400">ETH: \[ {prices.eth}</span>
-        <span className="text-green-400">USDT: \]{prices.usdt}</span>
+        <span className="text-blue-400">{`TON: ${prices.ton}`}</span>
+        <span className="text-orange-400">{`BTC: ${prices.btc}`}</span>
+        <span className="text-purple-400">{`ETH: ${prices.eth}`}</span>
+        <span className="text-green-400">{`USDT: ${prices.usdt}`}</span>
         <span className="text-yellow-400">$ANODE: Coming Soon (Testnet)</span>
+      </div>
+
+      <div className="fixed top-14 right-4 bg-blue-900/50 p-2 rounded-xl border border-blue-700 text-[10px] font-bold text-blue-300 uppercase">
+        <a href="https://www.f6s.com/afro-node-dapp" target="_blank" rel="noopener noreferrer">
+          F6S Global Platform for Startup - Validated
+        </a>
       </div>
 
       <div className="header mt-6 flex justify-between items-center mb-6 bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
@@ -270,6 +290,28 @@ function App() {
               <p className="text-xs text-gray-400 leading-normal">
                 We have created a Decentralized Gig-Economy that houses only Vetted Talents that provide skills at the most affordable rates in our native utility token $ANODE.
               </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mb-6">
+        <button 
+          onClick={() => setShowCommunity(!showCommunity)}
+          className="w-full bg-green-900/40 hover:bg-green-800/60 p-4 rounded-xl font-bold transition-all border border-green-800 text-sm"
+        >
+          {showCommunity ? 'CLOSE COMMUNITY ONBOARDING' : 'COMMUNITY ONBOARDING PAGE'}
+        </button>
+        {showCommunity && (
+          <div className="mt-2 bg-slate-800 p-6 rounded-xl border border-green-500/30 animate-in fade-in zoom-in duration-300">
+            <h2 className="text-green-400 font-black text-lg mb-4">JOIN THE AFRO-NODE COMMUNITY</h2>
+            <p className="text-sm leading-relaxed text-gray-300 mb-4">
+              Welcome to the first Pan-African Web3 Dual-Ecosystems, DeFi Protocol & Decentralized Gig-Economy platform on TON. Connect with vetted African tech talents, share ideas, ask questions, and stay updated with news and opportunities.
+            </p>
+            <div className="space-y-4">
+              <a href="https://t.me/afronodeWeb3" target="_blank" rel="noopener noreferrer" className="block bg-green-700 p-3 rounded-xl text-center font-bold text-xs">Join Telegram Pilot Community</a>
+              <a href="https://t.me/afronodeofficialchannel" target="_blank" rel="noopener noreferrer" className="block bg-green-600 p-3 rounded-xl text-center font-bold text-xs">Subscribe to Official Update Channel</a>
+              <p className="text-xs text-gray-400">Share ideas, meet talents, and get the latest updates here!</p>
             </div>
           </div>
         )}
@@ -402,6 +444,20 @@ function App() {
                 </tbody>
               </table>
             </div>
+            <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30">
+              <p className="text-[10px] text-amber-300 font-bold mb-2 uppercase">SAFT Investors Search</p>
+              <input type="text" placeholder="Wallet Address" className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs mb-2" value={saftSearchAddress} onChange={(e) => setSaftSearchAddress(e.target.value)} />
+              <button onClick={handleSaftSearch} className="w-full bg-amber-600 py-2 rounded-xl font-black text-xs mb-2">Search</button>
+              {saftInvestorInfo ? (
+                <p className="text-[10px] text-green-400">Address: {saftInvestorInfo.address} | Amount: {saftInvestorInfo.amount} $ANODE</p>
+              ) : saftSearchAddress && <p className="text-[10px] text-red-400">No investor found.</p>}
+            </div>
+            <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30">
+              <p className="text-[10px] text-amber-300 font-bold mb-2 uppercase">SAFT Merkle Security Verification</p>
+              <p className="text-[9px] text-gray-500 mb-2">Enter your SAFT-specific Merkle proof for claims.</p>
+              <input type="text" placeholder="SAFT Merkle Proof (Hex)" className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs mb-2" value={saftMerkleProof} onChange={(e) => setSaftMerkleProof(e.target.value)} />
+              <button onClick={() => handleProtectedAction(executeVestingClaim, "SAFT Vesting Claim")} className="w-full bg-amber-600 py-3 rounded-xl font-black text-xs">VERIFY & SECURE SAFT CLAIM</button>
+            </div>
           </div>
         )}
       </div>
@@ -529,24 +585,31 @@ function App() {
                </p>
              )}
 
+             <div className="flex items-center gap-2 mb-2">
+               <input type="checkbox" checked={kycAccepted} onChange={(e) => setKycAccepted(e.target.checked)} />
+               <label className="text-[10px] text-gray-300">Accept KYC and Terms</label>
+             </div>
+             <a href="https://example.com/kyc-form" target="_blank" rel="noopener noreferrer" className="block text-[10px] text-amber-400 underline mb-2">Complete KYC Verification Here</a>
+             {saftAgreementLink && (
+               <a href={saftAgreementLink} target="_blank" rel="noopener noreferrer" className="block text-[10px] text-emerald-400 underline mb-2">
+                 📜 Sign/View SAFT Legal Agreement
+               </a>
+             )}
              <button onClick={handleSaftPurchase} className="w-full bg-amber-600 py-3 rounded-xl font-bold text-xs uppercase">Buy $ANODE via USDT SAFT</button>
              <p className="text-[8px] text-center text-amber-700 uppercase">Strategic Private Sale — Funds bootstrap Mainnet launch</p>
 
-             {saftAgreementLink && (
-               <a href={saftAgreementLink} target="_blank" rel="noopener noreferrer" className="block text-[10px] text-emerald-400 underline mt-2">
-                 📜 View Signed SAFT Legal Agreement
-               </a>
-             )}
-
              {isAdmin && (
                <div className="pt-4 border-t border-amber-900/40 space-y-3">
+                 <button onClick={() => setIsEditLocked(!isEditLocked)} className="w-full bg-gray-700 py-2 rounded-xl font-bold text-xs uppercase">
+                   {isEditLocked ? 'Unlock Edit' : 'Lock Edit'}
+                 </button>
                  <div>
                    <p className="text-[10px] text-amber-400 mb-1">ADMIN: Multi-Sig Tonkeeper USDT Recipient Wallet</p>
-                   <input type="text" value={saftRecipient} onChange={(e) => setSaftRecipient(e.target.value)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40 font-mono" placeholder="Multi-sig Mainnet address" />
+                   <input type="text" disabled={isEditLocked} value={saftRecipient} onChange={(e) => setSaftRecipient(e.target.value)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40 font-mono" placeholder="Multi-sig Mainnet address" />
                  </div>
                  <div>
                    <p className="text-[10px] text-amber-400 mb-1">ADMIN: Insert Signed SAFT Agreement Link</p>
-                   <input type="text" value={saftAgreementLink} onChange={(e) => setSaftAgreementLink(e.target.value)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40 font-mono" placeholder="https://drive.google.com/... or IPFS link to signed PDF" />
+                   <input type="text" disabled={isEditLocked} value={saftAgreementLink} onChange={(e) => setSaftAgreementLink(e.target.value)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40 font-mono" placeholder="https://drive.google.com/... or IPFS link to signed PDF" />
                  </div>
                </div>
              )}
@@ -572,15 +635,52 @@ function App() {
         </div>
 
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-          <h3 className="text-lg font-bold mb-4 text-blue-400">Services Marketplace</h3>
+          <h3 className="text-lg font-bold mb-4 text-blue-400 flex justify-between items-center">
+            Services Marketplace
+            {isAdmin && (
+              <button onClick={() => setIsEditLocked(!isEditLocked)} className="bg-gray-700 px-3 py-1 rounded text-xs">
+                {isEditLocked ? 'Unlock Edit' : 'Lock Edit'}
+              </button>
+            )}
+          </h3>
           <div className="space-y-2 max-h-[120px] overflow-y-auto custom-scrollbar pr-2">
             {marketplaceItems.map(item => (
               <div key={item.id} className="bg-slate-900 p-2 rounded-xl flex justify-between items-center border border-slate-800">
                 <p className="text-[10px] font-bold">{item.title}</p>
-                <button onClick={() => handleProtectedAction(() => executeAnodePayment('m', item.id, item.price), "Market Order")} className="bg-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">{item.price}</button>
+                {isAdmin && !isEditLocked ? (
+                  <div className="flex gap-2">
+                    <input 
+                      type="number" 
+                      defaultValue={parseInt(item.price)} 
+                      onBlur={(e) => handleUpdateMarketPrice(item.id, e.target.value)} 
+                      className="w-20 bg-transparent border-b text-xs"
+                    />
+                    <button onClick={() => handleRemoveMarketItem(item.id)} className="text-red-500 text-xs">Remove</button>
+                  </div>
+                ) : (
+                  <button onClick={() => handleProtectedAction(() => executeAnodePayment('m', item.id, item.price), "Market Order")} className="bg-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">{item.price}</button>
+                )}
               </div>
             ))}
           </div>
+          {isAdmin && !isEditLocked && (
+            <div className="mt-4 space-y-2">
+              <input 
+                placeholder="New Item Title" 
+                value={newItemTitle} 
+                onChange={(e) => setNewItemTitle(e.target.value)} 
+                className="w-full bg-slate-900 p-2 rounded text-xs border border-slate-700"
+              />
+              <input 
+                type="number" 
+                placeholder="New Item Price ($ANODE)" 
+                value={newItemPrice} 
+                onChange={(e) => setNewItemPrice(e.target.value)} 
+                className="w-full bg-slate-900 p-2 rounded text-xs border border-slate-700"
+              />
+              <button onClick={handleAddMarketItem} className="w-full bg-green-600 py-2 rounded-xl font-bold text-xs uppercase">Add Item</button>
+            </div>
+          )}
 
           <div className="mt-6 bg-slate-900 p-4 rounded-xl border border-blue-800/40">
             <h4 className="text-blue-300 font-bold mb-3 text-sm">Submit Completed Task</h4>
@@ -627,6 +727,7 @@ function App() {
             <div className="text-sm space-y-4">
               <p>Founder & CEO: <a href="mailto:afronodedapp@gmail.com" className="text-teal-400 hover:underline">afronodedapp@gmail.com</a></p>
               <p>Join Telegram Pilot Community: <a href="https://t.me/afronodeWeb3" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">t.me/afronodeWeb3</a></p>
+              <p>Official Update Channel: <a href="https://t.me/afronodeofficialchannel" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">t.me/afronodeofficialchannel</a></p>
             </div>
           </div>
         )}
