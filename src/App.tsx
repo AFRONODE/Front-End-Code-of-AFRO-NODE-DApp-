@@ -1,3 +1,4 @@
+cat << EOF > App.tsx
 import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
@@ -54,6 +55,24 @@ function App() {
   const [saftInvestors, setSaftInvestors] = useState([]); // Dummy state for SAFT investors
   const [saftSearchAddress, setSaftSearchAddress] = useState("");
   const [saftInvestorInfo, setSaftInvestorInfo] = useState(null);
+
+  const [theme, setTheme] = useState('dark');
+
+  // SAFT KYC Form States
+  const [fullName, setFullName] = useState("");
+  const [primaryEmail, setPrimaryEmail] = useState("");
+  const [nationality, setNationality] = useState("");
+  const [idType, setIdType] = useState("");
+  const [idNumber, setIdNumber] = useState("");
+  const [primaryIdFile, setPrimaryIdFile] = useState(null);
+  const [residencyProofFile, setResidencyProofFile] = useState(null);
+  const [selfieFile, setSelfieFile] = useState(null);
+  const [sourceOfFunds, setSourceOfFunds] = useState("");
+  const [declarationAccepted, setDeclarationAccepted] = useState(false);
+  const [usdtContribution, setUsdtContribution] = useState("");
+  const [txHash, setTxHash] = useState("");
+  const [showKycForm, setShowKycForm] = useState(false);
+  const [kycCompleted, setKycCompleted] = useState(false);
 
   const {
     contract_address,
@@ -129,9 +148,9 @@ function App() {
     }
   };
 
-  const usdtToPay = saftBuyQty && !isNaN(Number(saftBuyQty)) 
-    ? (Number(saftBuyQty) * 0.02).toFixed(4) 
-    : "0.00";
+  const anodeAllocation = usdtContribution && !isNaN(Number(usdtContribution)) 
+    ? (Number(usdtContribution) / 0.02).toFixed(0) 
+    : "0";
 
   const handlePostTask = () => {
     if (!jobBudget || isNaN(Number(jobBudget)) || !jobDescription) {
@@ -146,34 +165,67 @@ function App() {
       setPostedGigs(prev => [...prev, {
         id: Date.now(),
         description: jobDescription,
-        budget: totalToLock.toFixed(2)
+        budget: totalToLock.toFixed(2),
+        status: 'open',
+        completerAddress: null
       }]);
       setJobDescription("");
       setJobBudget("");
     }, "Escrow Task Creation");
   };
 
+  const handleAcceptCompletion = (gigId, isDaoTalent) => {
+    setPostedGigs(prev => prev.map(gig => 
+      gig.id === gigId ? { ...gig, status: 'completed' } : gig
+    ));
+    const remittance = isDaoTalent ? '15%' : '10%';
+    setTxStatus(`Gig ${gigId} completed. Funds released with ${remittance} remittance to Treasury.`);
+    // In real scenario, call contract to release funds based on isDaoTalent
+  };
+
+  const handleKycSubmit = () => {
+    if (!fullName || !primaryEmail || !nationality || !idType || !idNumber || !primaryIdFile || !residencyProofFile || !selfieFile || !sourceOfFunds || !declarationAccepted) {
+      setTxStatus("Please complete all KYC fields.");
+      return;
+    }
+    setKycCompleted(true);
+    setShowKycForm(false);
+    setTxStatus("KYC submitted successfully (simulated for Testnet). Proceed to investment.");
+  };
+
   const handleSaftPurchase = () => {
-    const qty = Number(saftBuyQty);
-    if (!qty || qty <= 0 || qty > SAFT_MAX_PER_TX) {
+    const usdt = Number(usdtContribution);
+    const qty = Number(anodeAllocation);
+    if (!usdt || usdt <= 0 || qty > SAFT_MAX_PER_TX) {
       setTxStatus(`Invalid amount. Max per purchase: ${SAFT_MAX_PER_TX.toLocaleString()} $ANODE`);
       return;
     }
-    if (!kycAccepted) {
-      setTxStatus("Please accept KYC and terms.");
+    if (!kycCompleted || !kycAccepted || !txHash) {
+      setTxStatus("Please complete KYC, accept terms, and provide Tx Hash.");
       return;
     }
     const agreementNote = saftAgreementLink ? `Signed SAFT: ${saftAgreementLink}` : "Legal SAFT handled by Compliance Lead.";
     handleProtectedAction(() => {
+      const handshakeData = {
+        "investor_mainnet_wallet": wallet?.account?.address,
+        "investment_usdt": usdt.toString(),
+        "anode_allocation": qty.toString(),
+        "tx_hash": txHash,
+        "timestamp": Math.floor(Date.now() / 1000).toString(),
+        "kyc_status": "VERIFIED",
+        "vesting_type": "LINEAR_24_MONTHS_ZERO_CLIFF"
+      };
+      console.log("Mainnet Handshake Data:", JSON.stringify(handshakeData, null, 2));
+      // In production, send to secure database
+      setSaftInvestors(prev => [...prev, { address: wallet?.account?.address, amount: qty, usdt: usdt, txHash }]);
       setTxStatus(
-        `KYC/Whitelist verified.\n\n` +
-        `Send exactly ${usdtToPay} USDT to:\n ${saftRecipient}\n\n` +
-        `Multi-sig Tonkeeper wallet.\n` +
+        `SAFT Purchase processed.\n\n` +
+        `Allocation: ${qty} $ANODE for ${usdt} USDT.\n\n` +
+        `Multi-sig Tonkeeper wallet: ${saftRecipient}\n` +
         `${agreementNote}\n\n` +
-        `Forward tx hash to afronodedapp@gmail.com`
+        `Tx Hash recorded: ${txHash}\n` +
+        `Forward confirmation to afronodedapp@gmail.com`
       );
-      // Simulate adding to investors list (in real, this would be from contract)
-      setSaftInvestors(prev => [...prev, { address: wallet?.account?.address, amount: qty }]);
     }, "SAFT Purchase");
   };
 
@@ -208,7 +260,7 @@ function App() {
   ];
 
   const saftVestingTable = [
-    { role: "SAFT Investors", total: "100M", monthly: "4,166,666.67", share: "10%" },
+    { role: "SAFT Investors", total: "Up to 100M", monthly: "Pro-rata based on allocation over 24 months", share: "10%" },
   ];
 
   if (!contract_address) {
@@ -222,8 +274,8 @@ function App() {
   }
 
   return (
-    <div className="app-container p-4 bg-slate-900 min-h-screen text-white font-sans overflow-x-hidden">
-      <style>{`
+    <div className={\`app-container p-4 min-h-screen text-white font-sans overflow-x-hidden \${theme === 'dark' ? 'bg-slate-900' : 'bg-gray-100 text-black'}\`}>
+      <style>{\`
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 25s linear infinite; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -235,20 +287,14 @@ function App() {
           box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
           position: relative; border: 4px solid #1e293b;
         }
-      `}</style>
+      \`}</style>
 
       <div className="fixed top-0 left-0 w-full bg-black/40 backdrop-blur-md z-50 border-b border-slate-700 p-1 flex justify-around text-[10px] font-mono">
-        <span className="text-blue-400">{`TON: ${prices.ton}`}</span>
-        <span className="text-orange-400">{`BTC: ${prices.btc}`}</span>
-        <span className="text-purple-400">{`ETH: ${prices.eth}`}</span>
-        <span className="text-green-400">{`USDT: ${prices.usdt}`}</span>
-        <span className="text-yellow-400">$ANODE: Coming Soon (Testnet)</span>
-      </div>
-
-      <div className="fixed top-14 right-4 bg-blue-900/50 p-2 rounded-xl border border-blue-700 text-[10px] font-bold text-blue-300 uppercase">
-        <a href="https://www.f6s.com/afro-node-dapp" target="_blank" rel="noopener noreferrer">
-          F6S Global Platform for Startup - Validated
-        </a>
+        <span className="text-blue-400">{\`TON: \${prices.ton}\`}</span>
+        <span className="text-orange-400">{\`BTC: \${prices.btc}\`}</span>
+        <span className="text-purple-400">{\`ETH: \${prices.eth}\`}</span>
+        <span className="text-green-400">{\`USDT: \${prices.usdt}\`}</span>
+        <span className="text-yellow-400">\$ANODE: Coming Soon (Testnet)</span>
       </div>
 
       <div className="header mt-6 flex justify-between items-center mb-6 bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
@@ -259,10 +305,13 @@ function App() {
         <div className="flex items-center gap-4">
           {connected && (
             <div className="text-[10px] font-mono bg-emerald-900/80 px-3 py-1 rounded-full border border-emerald-700">
-              $ANODE: {anodeBalance ?? "0"}
+              \$ANODE: {anodeBalance ?? "0"}
             </div>
           )}
           <TonConnectButton />
+          <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="bg-gray-700 px-3 py-1 rounded text-xs text-white">
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
         </div>
       </div>
 
@@ -270,6 +319,12 @@ function App() {
         <div className="animate-marquee text-[11px] font-bold text-indigo-300 uppercase">
           Click the Join button on the Innovation HUB DAO to register as a verified talent of our exclusive Hub DAO and use 🎉 &nbsp;&nbsp;&nbsp;&nbsp; Click the Join button on the Innovation HUB DAO to register as a verified talent of our exclusive Hub DAO and use 🎉
         </div>
+      </div>
+
+      <div className="mb-6 bg-blue-900/50 p-2 rounded-xl border border-blue-700 text-[10px] font-bold text-blue-300 uppercase">
+        <a href="https://www.f6s.com/afro-node-dapp" target="_blank" rel="noopener noreferrer">
+          F6S Global Platform for Startup - Validated
+        </a>
       </div>
 
       <div className="mb-6">
@@ -288,7 +343,7 @@ function App() {
             <div className="bg-slate-900 p-4 rounded-lg border border-slate-700">
               <p className="text-xs text-indigo-400 font-black uppercase mb-2">Our Mission</p>
               <p className="text-xs text-gray-400 leading-normal">
-                We have created a Decentralized Gig-Economy that houses only Vetted Talents that provide skills at the most affordable rates in our native utility token $ANODE.
+                We have created a Decentralized Gig-Economy that houses only Vetted Talents that provide skills at the most affordable rates in our native utility token \$ANODE.
               </p>
             </div>
           </div>
@@ -311,6 +366,7 @@ function App() {
             <div className="space-y-4">
               <a href="https://t.me/afronodeWeb3" target="_blank" rel="noopener noreferrer" className="block bg-green-700 p-3 rounded-xl text-center font-bold text-xs">Join Telegram Pilot Community</a>
               <a href="https://t.me/afronodeofficialchannel" target="_blank" rel="noopener noreferrer" className="block bg-green-600 p-3 rounded-xl text-center font-bold text-xs">Subscribe to Official Update Channel</a>
+              <a href="https://x.com/AfroDapp8382" target="_blank" rel="noopener noreferrer" className="block bg-green-500 p-3 rounded-xl text-center font-bold text-xs">Follow on X @AfroDapp8382</a>
               <p className="text-xs text-gray-400">Share ideas, meet talents, and get the latest updates here!</p>
             </div>
           </div>
@@ -365,15 +421,15 @@ function App() {
         {showContracts && (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2 animate-in slide-in-from-top-2">
             {[
-              { name: "AnodeMaster.tact", desc: "Governs $ANODE utility" },
+              { name: "AnodeMaster.tact", desc: "Governs \$ANODE utility" },
               { name: "AnodeWallet.tact", desc: "Jetton Child logic" },
               { name: "Marketplace.tact", desc: "Listings protocol" },
               { name: "Escrow.tact", desc: "Secure remittance" },
               { name: "HubDAO.fc", desc: "Innovation HUB Brain", highlight: true },
               { name: "Vesting.tact", desc: "Merkle Claims logic" }
             ].map((sc, i) => (
-              <div key={i} className={`p-3 rounded-xl border ${sc.highlight ? 'border-orange-500 bg-orange-500/5' : 'border-slate-700 bg-slate-900/50'}`}>
-                <p className={`text-[10px] font-black ${sc.highlight ? 'text-orange-400' : 'text-blue-400'}`}>{sc.name}</p>
+              <div key={i} className={\`p-3 rounded-xl border \${sc.highlight ? 'border-orange-500 bg-orange-500/5' : 'border-slate-700 bg-slate-900/50'}\`}>
+                <p className={\`text-[10px] font-black \${sc.highlight ? 'text-orange-400' : 'text-blue-400'}\`}>{sc.name}</p>
                 <p className="text-[8px] text-gray-500">{sc.desc}</p>
               </div>
             ))}
@@ -396,7 +452,7 @@ function App() {
                 <thead>
                   <tr className="text-indigo-400 border-b border-slate-800">
                     <th className="p-2">SOURCE</th>
-                    <th className="p-2">MONTHLY ($ANODE)</th>
+                    <th className="p-2">MONTHLY (\$ANODE)</th>
                     <th className="p-2 text-right">SHARE</th>
                   </tr>
                 </thead>
@@ -433,13 +489,14 @@ function App() {
                 <thead>
                   <tr className="text-amber-400 border-b border-slate-800">
                     <th className="p-2">SOURCE</th>
-                    <th className="p-2">MONTHLY ($ANODE)</th>
+                    <th className="p-2">TOTAL (\$ANODE)</th>
+                    <th className="p-2">MONTHLY</th>
                     <th className="p-2 text-right">SHARE</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {saftVestingTable.map((row, i) => (
-                    <tr key={i}><td className="p-2 text-gray-100">{row.role}</td><td className="p-2 text-yellow-500">{row.monthly}</td><td className="p-2 text-right text-gray-500">{row.share}</td></tr>
+                    <tr key={i}><td className="p-2 text-gray-100">{row.role}</td><td className="p-2 text-yellow-500">{row.total}</td><td className="p-2 text-yellow-500">{row.monthly}</td><td className="p-2 text-right text-gray-500">{row.share}</td></tr>
                   ))}
                 </tbody>
               </table>
@@ -449,7 +506,12 @@ function App() {
               <input type="text" placeholder="Wallet Address" className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs mb-2" value={saftSearchAddress} onChange={(e) => setSaftSearchAddress(e.target.value)} />
               <button onClick={handleSaftSearch} className="w-full bg-amber-600 py-2 rounded-xl font-black text-xs mb-2">Search</button>
               {saftInvestorInfo ? (
-                <p className="text-[10px] text-green-400">Address: {saftInvestorInfo.address} | Amount: {saftInvestorInfo.amount} $ANODE</p>
+                <div className="text-[10px] text-green-400">
+                  <p>Address: {saftInvestorInfo.address}</p>
+                  <p>Amount: {saftInvestorInfo.amount} \$ANODE</p>
+                  <p>USDT: {saftInvestorInfo.usdt}</p>
+                  <p>Tx Hash: {saftInvestorInfo.txHash}</p>
+                </div>
               ) : saftSearchAddress && <p className="text-[10px] text-red-400">No investor found.</p>}
             </div>
             <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30">
@@ -465,7 +527,7 @@ function App() {
       {/* EQUITY & TOKENOMICS */}
       <div className="mb-6 bg-slate-800 p-6 rounded-2xl border-l-4 border-cyan-500 shadow-xl">
         <button onClick={() => setShowBusinessNote(!showBusinessNote)} className="w-full flex justify-between items-center text-cyan-400 font-bold">
-          <span className="flex items-center gap-2">📊 EQUITY & $ANODE TOKENOMICS</span>
+          <span className="flex items-center gap-2">📊 EQUITY & \$ANODE TOKENOMICS</span>
           <span>{showBusinessNote ? 'HIDE' : 'OPEN'}</span>
         </button>
         {showBusinessNote && (
@@ -474,9 +536,9 @@ function App() {
               <div className="flex flex-col items-center">
                 <div className="flex items-center gap-2 mb-2">
                   <img src="/anode-token.png" alt="ANODE" className="h-6 w-6" />
-                  <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest">$ANODE TOKENOMICS</h3>
+                  <h3 className="text-xs font-black text-cyan-400 uppercase tracking-widest">\$ANODE TOKENOMICS</h3>
                 </div>
-                <p className="text-[10px] text-cyan-400 font-mono mb-3">MAXIMUM TOTAL SUPPLY: 1,000,000,000 $ANODE</p>
+                <p className="text-[10px] text-cyan-400 font-mono mb-3">MAXIMUM TOTAL SUPPLY: 1,000,000,000 \$ANODE</p>
                 <div className="executive-pie"></div>
               </div>
               <div className="flex-1 grid grid-cols-2 gap-2 w-full text-[10px]">
@@ -489,7 +551,7 @@ function App() {
                   {c:'bg-cyan-500',l:'DEX Liquidity',p:'5% (50M)'},
                   {c:'bg-red-500',l:'Public IDO',p:'2% (20M)'}
                 ].map((x,i)=>(
-                  <div key={i} className="bg-slate-900 p-2 rounded flex justify-between"><span className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${x.c}`}></div>{x.l}</span><span className="font-bold text-cyan-400">{x.p}</span></div>
+                  <div key={i} className="bg-slate-900 p-2 rounded flex justify-between"><span className="flex items-center gap-2"><div className={\`w-2 h-2 rounded-full \${x.c}\`}></div>{x.l}</span><span className="font-bold text-cyan-400">{x.p}</span></div>
                 ))}
               </div>
             </div>
@@ -528,7 +590,7 @@ function App() {
              <div className="relative">
                 <input 
                     type="number"
-                    placeholder="Budget ($ANODE)" 
+                    placeholder="Budget (\$ANODE)" 
                     className="w-full bg-slate-900 p-3 rounded-xl text-xs outline-none border border-slate-700" 
                     value={jobBudget}
                     onChange={(e) => setJobBudget(e.target.value)}
@@ -557,8 +619,14 @@ function App() {
                 postedGigs.map((gig) => (
                   <div key={gig.id} className="bg-slate-900 p-3 rounded-xl text-xs border border-blue-800/50">
                     <p className="font-bold text-blue-300 leading-tight">{gig.description}</p>
-                    <p className="text-emerald-400 mt-1">Budget: {gig.budget} $ANODE (incl. 10% escrow fee)</p>
-                    <p className="text-[10px] text-gray-500 mt-1">Open for claims by verified Innovation HUB DAO Talents</p>
+                    <p className="text-emerald-400 mt-1">Budget: {gig.budget} \$ANODE (incl. 10% escrow fee)</p>
+                    <p className="text-[10px] text-gray-500 mt-1">Status: {gig.status.toUpperCase()}</p>
+                    {gig.status === 'open' && (
+                      <div className="mt-2 flex gap-2">
+                        <button onClick={() => handleAcceptCompletion(gig.id, true)} className="bg-green-600 px-3 py-1 rounded text-[9px]">Accept (DAO Talent - 15% Remittance)</button>
+                        <button onClick={() => handleAcceptCompletion(gig.id, false)} className="bg-green-500 px-3 py-1 rounded text-[9px]">Accept (Enthusiast - 10% Remittance)</button>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -569,34 +637,77 @@ function App() {
         <div className="bg-slate-800 p-6 rounded-2xl border border-amber-600/40 shadow-lg">
           <h3 className="text-lg font-bold text-amber-500 mb-4">SAFT Investor Portal</h3>
           <div className="space-y-2">
-             <p className="text-[10px] text-gray-400">Fixed SAFT Price: $0.02 / $ANODE — Pay in USDT only (TON Jetton)</p>
+             <p className="text-[10px] text-gray-400">Fixed SAFT Price: \$0.02 / \$ANODE — Pay in USDT only (TON Jetton)</p>
              
-             <input 
-               type="number" 
-               placeholder="Enter Amount of $ANODE" 
-               className="w-full bg-slate-900 p-3 rounded-xl text-xs outline-none border border-amber-900/40" 
-               value={saftBuyQty} 
-               onChange={(e) => setSaftBuyQty(e.target.value)} 
-             />
+             {!kycCompleted ? (
+               <button onClick={() => setShowKycForm(true)} className="w-full bg-amber-500 py-3 rounded-xl font-bold text-xs uppercase">Complete Embedded KYC</button>
+             ) : (
+               <>
+                 <input 
+                   type="number" 
+                   placeholder="USDT Contribution" 
+                   className="w-full bg-slate-900 p-3 rounded-xl text-xs outline-none border border-amber-900/40" 
+                   value={usdtContribution} 
+                   onChange={(e) => setUsdtContribution(e.target.value)} 
+                 />
 
-             {saftBuyQty && (
-               <p className="text-[11px] font-mono text-emerald-400 bg-emerald-950/50 p-2 rounded-xl border border-emerald-900/50">
-                 You will pay: <span className="font-bold">${usdtToPay} USDT</span> (at fixed $0.02 per $ANODE)
-               </p>
+                 {usdtContribution && (
+                   <p className="text-[11px] font-mono text-emerald-400 bg-emerald-950/50 p-2 rounded-xl border border-emerald-900/50">
+                     Allocation: <span className="font-bold">{anodeAllocation} \$ANODE</span> (at fixed \$0.02 per \$ANODE)
+                   </p>
+                 )}
+
+                 <input 
+                   type="text" 
+                   placeholder="USDT Tx Hash (after transfer)" 
+                   className="w-full bg-slate-900 p-3 rounded-xl text-xs outline-none border border-amber-900/40" 
+                   value={txHash} 
+                   onChange={(e) => setTxHash(e.target.value)} 
+                 />
+
+                 <div className="flex items-center gap-2 mb-2">
+                   <input type="checkbox" checked={kycAccepted} onChange={(e) => setKycAccepted(e.target.checked)} />
+                   <label className="text-[10px] text-gray-300">Accept Terms</label>
+                 </div>
+                 {saftAgreementLink && (
+                   <a href={saftAgreementLink} target="_blank" rel="noopener noreferrer" className="block text-[10px] text-emerald-400 underline mb-2">
+                     📜 Sign/View SAFT Legal Agreement
+                   </a>
+                 )}
+                 <button onClick={handleSaftPurchase} className="w-full bg-amber-600 py-3 rounded-xl font-bold text-xs uppercase">Confirm SAFT Purchase</button>
+                 <p className="text-[8px] text-center text-amber-700 uppercase">Strategic Private Sale — Funds bootstrap Mainnet launch</p>
+               </>
              )}
 
-             <div className="flex items-center gap-2 mb-2">
-               <input type="checkbox" checked={kycAccepted} onChange={(e) => setKycAccepted(e.target.checked)} />
-               <label className="text-[10px] text-gray-300">Accept KYC and Terms</label>
-             </div>
-             <a href="https://example.com/kyc-form" target="_blank" rel="noopener noreferrer" className="block text-[10px] text-amber-400 underline mb-2">Complete KYC Verification Here</a>
-             {saftAgreementLink && (
-               <a href={saftAgreementLink} target="_blank" rel="noopener noreferrer" className="block text-[10px] text-emerald-400 underline mb-2">
-                 📜 Sign/View SAFT Legal Agreement
-               </a>
+             {showKycForm && (
+               <div className="mt-4 space-y-2 bg-slate-900 p-4 rounded-xl border border-amber-500/30">
+                 <input placeholder="Full Legal Name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-slate-800 p-2 rounded text-xs border border-slate-700" />
+                 <input type="email" placeholder="Primary Email" value={primaryEmail} onChange={(e) => setPrimaryEmail(e.target.value)} className="w-full bg-slate-800 p-2 rounded text-xs border border-slate-700" />
+                 <input placeholder="Nationality" value={nationality} onChange={(e) => setNationality(e.target.value)} className="w-full bg-slate-800 p-2 rounded text-xs border border-slate-700" />
+                 <select value={idType} onChange={(e) => setIdType(e.target.value)} className="w-full bg-slate-800 p-2 rounded text-xs border border-slate-700">
+                   <option value="">Select ID Type</option>
+                   <option value="International Passport">International Passport</option>
+                   <option value="National ID">National ID</option>
+                   <option value="Driver's License">Driver's License</option>
+                 </select>
+                 <input placeholder="Unique ID Number" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} className="w-full bg-slate-800 p-2 rounded text-xs border border-slate-700" />
+                 <label className="text-[10px]">Primary ID Upload: <input type="file" onChange={(e) => setPrimaryIdFile(e.target.files[0])} /></label>
+                 <label className="text-[10px]">Proof of Residency: <input type="file" onChange={(e) => setResidencyProofFile(e.target.files[0])} /></label>
+                 <label className="text-[10px]">Selfie for Liveness: <input type="file" onChange={(e) => setSelfieFile(e.target.files[0])} /></label>
+                 <select value={sourceOfFunds} onChange={(e) => setSourceOfFunds(e.target.value)} className="w-full bg-slate-800 p-2 rounded text-xs border border-slate-700">
+                   <option value="">Source of Funds</option>
+                   <option value="Salary/Savings">Salary/Savings</option>
+                   <option value="Investment Profits">Investment Profits</option>
+                   <option value="Business Revenue">Business Revenue</option>
+                   <option value="Inheritance/Gift">Inheritance/Gift</option>
+                 </select>
+                 <div className="flex items-center gap-2">
+                   <input type="checkbox" checked={declarationAccepted} onChange={(e) => setDeclarationAccepted(e.target.checked)} />
+                   <label className="text-[10px]">I certify funds are not illicit and I am not a PEP.</label>
+                 </div>
+                 <button onClick={handleKycSubmit} className="w-full bg-green-600 py-2 rounded-xl font-bold text-xs">Submit KYC</button>
+               </div>
              )}
-             <button onClick={handleSaftPurchase} className="w-full bg-amber-600 py-3 rounded-xl font-bold text-xs uppercase">Buy $ANODE via USDT SAFT</button>
-             <p className="text-[8px] text-center text-amber-700 uppercase">Strategic Private Sale — Funds bootstrap Mainnet launch</p>
 
              {isAdmin && (
                <div className="pt-4 border-t border-amber-900/40 space-y-3">
@@ -630,7 +741,7 @@ function App() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => handleProtectedAction(() => executeDaoVote(1, true), "DAO Vote")} className="flex-1 bg-slate-700 p-2 rounded-xl text-green-400 text-[10px] font-bold">VOTE YES</button>
-            <button onClick={() => window.open(`https://testnet.tonviewer.com/${dao_address}`)} className="flex-1 bg-slate-900 p-2 rounded-xl text-white text-[10px] font-bold">EXPLORER</button>
+            <button onClick={() => window.open(\`https://testnet.tonviewer.com/\${dao_address}\`)} className="flex-1 bg-slate-900 p-2 rounded-xl text-white text-[10px] font-bold">EXPLORER</button>
           </div>
         </div>
 
@@ -673,7 +784,7 @@ function App() {
               />
               <input 
                 type="number" 
-                placeholder="New Item Price ($ANODE)" 
+                placeholder="New Item Price (\$ANODE)" 
                 value={newItemPrice} 
                 onChange={(e) => setNewItemPrice(e.target.value)} 
                 className="w-full bg-slate-900 p-2 rounded text-xs border border-slate-700"
@@ -726,8 +837,7 @@ function App() {
           <div className="mt-2 bg-slate-800 p-6 rounded-xl border border-teal-500/30 animate-in fade-in zoom-in duration-300">
             <div className="text-sm space-y-4">
               <p>Founder & CEO: <a href="mailto:afronodedapp@gmail.com" className="text-teal-400 hover:underline">afronodedapp@gmail.com</a></p>
-              <p>Join Telegram Pilot Community: <a href="https://t.me/afronodeWeb3" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">t.me/afronodeWeb3</a></p>
-              <p>Official Update Channel: <a href="https://t.me/afronodeofficialchannel" target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline">t.me/afronodeofficialchannel</a></p>
+              <p>Technical Support (Web3 Developers): <a href="mailto:gigeconomytechnicalsupport@gmail.com" className="text-teal-400 hover:underline">gigeconomytechnicalsupport@gmail.com</a></p>
             </div>
           </div>
         )}
@@ -760,10 +870,11 @@ function App() {
       )}
 
       <footer className="mt-10 text-center text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-10">
-        AFRO-NODE v1.0.4 | Dual-Engine: TACT & FUNC | 2026 | <a href="https://x.com/AfroDapp8382" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">X @AfroDapp8382</a>
+        AFRO-NODE v1.0.4 | Dual-Engine: TACT & FUNC | 2026
       </footer>
     </div>
   );
 }
 
 export default App;
+EOF
