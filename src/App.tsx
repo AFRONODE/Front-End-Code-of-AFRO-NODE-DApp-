@@ -1,4 +1,3 @@
-
 import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
@@ -356,7 +355,7 @@ function App() {
   }
 
   return (
-    <div className={`app-container p-4 min-h-screen font-sans overflow-x-hidden ${isDarkMode ? "bg-slate-900 text-white" : "bg-white text-gray-900"}`}>
+    <div className={`app-container p-4 min-h-screen font-sans overflow-x-hidden ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-gray-900'}`}>
       <style>{`
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 25s linear infinite; }
@@ -373,13 +372,13 @@ function App() {
         .light-mode .text-gray-300 { color: #4b5563; }
         .light-mode .bg-slate-800 { background-color: #e5e7eb; }
         // Add more overrides as needed for light mode
-      \`}</style>
+      `}</style>
 
       <div className="fixed top-0 left-0 w-full bg-black/40 backdrop-blur-md z-50 border-b border-slate-700 p-1 flex justify-around text-[10px] font-mono">
-        <span className="text-blue-400">{\`TON: \${prices.ton}\`}</span>
-        <span className="text-orange-400">{\`BTC: \${prices.btc}\`}</span>
-        <span className="text-purple-400">{\`ETH: \${prices.eth}\`}</span>
-        <span className="text-green-400">{\`USDT: \${prices.usdt}\`}</span>
+        <span className="text-blue-400">{`TON: ${prices.ton}`}</span>
+        <span className="text-orange-400">{`BTC: ${prices.btc}`}</span>
+        <span className="text-purple-400">{`ETH: ${prices.eth}`}</span>
+        <span className="text-green-400">{`USDT: ${prices.usdt}`}</span>
         <span className="text-yellow-400">$ANODE: Coming Soon (Testnet)</span>
       </div>
 
@@ -534,8 +533,8 @@ function App() {
               { name: "HubDAO.fc", desc: "Innovation HUB Brain", highlight: true },
               { name: "Vesting.tact", desc: "Merkle Claims logic" }
             ].map((sc, i) => (
-              <div key={i} className={\`p-3 rounded-xl border \${sc.highlight ? 'border-orange-500 bg-orange-500/5' : 'border-slate-700 bg-slate-900/50'}\`}>
-                <p className={\`text-[10px] font-black \${sc.highlight ? 'text-orange-400' : 'text-blue-400'}\`}>{sc.name}</p>
+              <div key={i} className={`p-3 rounded-xl border ${sc.highlight ? 'border-orange-500 bg-orange-500/5' : 'border-slate-700 bg-slate-900/50'}`}>
+                <p className={`text-[10px] font-black ${sc.highlight ? 'text-orange-400' : 'text-blue-400'}`}>{sc.name}</p>
                 <p className="text-[8px] text-gray-500">{sc.desc}</p>
               </div>
             ))}
@@ -661,7 +660,7 @@ function App() {
                   {c:'bg-cyan-500',l:'DEX Liquidity',p:'5% (50M)'},
                   {c:'bg-red-500',l:'Public IDO',p:'2% (20M)'}
                 ].map((x,i)=>(
-                  <div key={i} className="bg-slate-900 p-2 rounded flex justify-between"><span className="flex items-center gap-2"><div className={\`w-2 h-2 rounded-full \${x.c}\`}></div>{x.l}</span><span className="font-bold text-cyan-400">{x.p}</span></div>
+                  <div key={i} className="bg-slate-900 p-2 rounded flex justify-between"><span className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${x.c}`}></div>{x.l}</span><span className="font-bold text-cyan-400">{x.p}</span></div>
                 ))}
               </div>
             </div>
@@ -883,7 +882,7 @@ function App() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => handleProtectedAction(() => executeDaoVote(1, true), "DAO Vote")} className="flex-1 bg-slate-700 p-2 rounded-xl text-green-400 text-[10px] font-bold">VOTE YES</button>
-            <button onClick={() => window.open(\`https://testnet.tonviewer.com/\${dao_address}\`)} className="flex-1 bg-slate-900 p-2 rounded-xl text-white text-[10px] font-bold">EXPLORER</button>
+            <button onClick={() => window.open(`https://testnet.tonviewer.com/${dao_address}`)} className="flex-1 bg-slate-900 p-2 rounded-xl text-white text-[10px] font-bold">EXPLORER</button>
           </div>
         </div>
 
@@ -1023,4 +1022,3 @@ function App() {
 }
 
 export default App;
-
