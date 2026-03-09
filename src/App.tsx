@@ -356,8 +356,8 @@ function App() {
   }
 
   return (
-    <div className={\`app-container p-4 min-h-screen font-sans overflow-x-hidden \${isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-gray-900'}\`}>
-      <style>{\`
+    <div className={`app-container p-4 min-h-screen font-sans overflow-x-hidden ${isDarkMode ? "bg-slate-900 text-white" : "bg-white text-gray-900"}`}>
+      <style>{`
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 25s linear infinite; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
