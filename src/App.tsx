@@ -274,7 +274,7 @@ function App() {
   }
 
   return (
-    <div className={\`app-container p-4 min-h-screen text-white font-sans overflow-x-hidden \${theme === 'dark' ? 'bg-slate-900' : 'bg-gray-100 text-black'}\`}>
+    <div className={`app-container p-4 min-h-screen text-white font-sans overflow-x-hidden ${theme === "dark" ? "bg-slate-900" : "bg-gray-100 text-black"}`}>
       <style>{\`
         @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 25s linear infinite; }
