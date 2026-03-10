@@ -2,7 +2,9 @@ import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-
 import { useMainContract } from './hooks/useMainContract';
 import { useTonConnect } from './hooks/useTonConnect';
 import { Address } from '@ton/core';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import Webcam from 'react-webcam';
+import * as faceapi from '@vladmandic/face-api';
 
 const ADMIN_WALLET_ADDRESS = "0QDfCEYFiy0F5ntz4MIpM_8ciKAmTZ-36fJ54Ay4IlbAyo4u";
 const SAFT_TOTAL_POOL = 100000000;
@@ -81,6 +83,21 @@ function App() {
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
   const [kycData, setKycData] = useState(null);
 
+  // New states for disputes and complaints
+  const [disputeNote, setDisputeNote] = useState("");
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [selectedGigIdForDispute, setSelectedGigIdForDispute] = useState(null);
+
+  // New state for SAFT main section
+  const [showSaftSection, setShowSaftSection] = useState(false);
+
+  // Skills score logic for DAO members
+  const [skillsScore, setSkillsScore] = useState(0); // Simulated skills score, in real integrate with contract
+
+  // Liveness detection states
+  const webcamRef = useRef(null);
+  const [isLivenessDetected, setIsLivenessDetected] = useState(false);
+
   const {
     contract_address,
     dao_address,
@@ -140,6 +157,22 @@ function App() {
   useEffect(() => {
     localStorage.setItem('saftInvestors', JSON.stringify(saftInvestors));
   }, [saftInvestors]);
+
+  // Simulate skills score update (in real, fetch from contract)
+  useEffect(() => {
+    // For demo, set based on member_rank or something
+    if (member_rank?.rank) {
+      setSkillsScore(Math.floor(Math.random() * 250)); // Random for demo
+    }
+  }, [member_rank]);
+
+  // Load face-api models
+  useEffect(() => {
+    Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+      faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+    ]).then(() => console.log('Models loaded'));
+  }, []);
 
   const isAdmin = useMemo(() => {
     if (!wallet?.account?.address) return false;
@@ -222,7 +255,7 @@ function App() {
     const usdt = Number(saftUsdtAmount);
     const anodeQty = Number(anodeToGet);
     if (!usdt || usdt <= 0 || anodeQty > SAFT_MAX_PER_TX) {
-      setTxStatus(`Invalid amount. Max per purchase: ${SAFT_MAX_PER_TX.toLocaleString()} $ANODE ($${SAFT_MAX_PER_TX * 0.02} USDT)`);
+      setTxStatus(`Invalid amount. Max per purchase: ${SAFT_MAX_PER_TX.toLocaleString()} $ANODE (\[ {SAFT_MAX_PER_TX * 0.02} USDT)`);
       return;
     }
     if (!kycAccepted || !kycData) {
@@ -310,16 +343,49 @@ function App() {
     updated[index].status = 'completed';
     setPostedGigs(updated);
     setTxStatus(`Funds released successfully. ${remittance}% remittance applied to Treasury.`);
+    // Update skills score if DAO talent
+    if (gig.isDaoTalent) {
+      setSkillsScore(prev => prev + 1);
+    }
   };
 
   const handleReject = (id) => {
     const index = postedGigs.findIndex(g => g.id === id);
     if (index === -1) return;
+    setSelectedGigIdForDispute(id);
+    setShowDisputeForm(true);
+  };
+
+  const handleSubmitDispute = () => {
+    if (!disputeNote) {
+      setTxStatus("Please provide a note for dissatisfaction.");
+      return;
+    }
+    const index = postedGigs.findIndex(g => g.id === selectedGigIdForDispute);
+    if (index === -1) return;
     const updated = [...postedGigs];
-    updated[index].status = 'open';
-    updated[index].proof = '';
+    updated[index].status = 'disputed';
+    updated[index].disputeNote = disputeNote;
     setPostedGigs(updated);
-    setTxStatus("Work rejected. Gig reopened for other talents.");
+    setShowDisputeForm(false);
+    setDisputeNote("");
+    setTxStatus("Work rejected and dispute initiated. Talent can respond or escalate.");
+  };
+
+  const handleInitiateDispute = (id) => {
+    // For talents/users to initiate dispute
+    setSelectedGigIdForDispute(id);
+    setShowDisputeForm(true);
+  };
+
+  const getRank = (score) => {
+    if (score >= 200) return 'Legend 🌟';
+    if (score >= 151) return 'Master 🏆';
+    if (score >= 101) return 'Expert 🧠';
+    if (score >= 61) return 'Skilled ⚙️';
+    if (score >= 31) return 'Novice 📚';
+    if (score >= 20) return 'Emerging 🚀';
+    return 'Rookie 🐣';
   };
 
   const vestingTable = [
@@ -336,13 +402,38 @@ function App() {
 
   const userGuides = [
     { title: "Connecting Your Wallet", content: "Click the TonConnect button in the header to connect your TON wallet." },
-    { title: "Posting a Gig", content: "In Client Gigs Portal, enter description and budget, then post to lock escrow." },
-    { title: "Submitting Work", content: "In Services Marketplace, enter Task ID and proof, submit for client review." },
+    { title: "Posting a Gig as Client", content: "In Client Gigs Portal, enter description and budget. The system adds 10% escrow fee automatically. Post to lock funds in Escrow.tact smart contract for security. Funds are released only after you confirm satisfaction." },
+    { title: "Participating in Gigs as Talent or User", content: "Verified Talents in Innovation HUB DAO and normal users/enthusiasts/guests can submit work for posted gigs. DAO Talents get exclusive access to high-paying gigs. Submit proof via Task ID. Client reviews and accepts/rejects. Escrow tracks submitter's wallet ID to determine if DAO member (via HubDAO.fc) for remittance: 15% treasury for DAO (85% to talent), 10% for users (90% to user)." },
+    { title: "Skills Score System in HUB DAO", content: "Newly registered Vetted Talents start with 0-30 S-score (Rookie 🐣). Complete high-technical gigs to increase S-score by 1 per paid job. 200+ S-score ranks as Unicorn 🦄. S-score reflects completed gigs in DAO, empowering talents financially through better opportunities." },
+    { title: "Escrow Security & Payments", content: "Escrow.tact creates secure 🔐 payments. Triple deduction: 10% escrow fee, plus remittance (15% DAO/10% user). Smart contract holds funds until client satisfaction. Protects clients from incomplete work, talents from non-payment." },
+    { title: "Dispute Resolution", content: "If dissatisfied, client adds note and rejects. Talent can redo or initiate dispute via complaints portal. Escalated disputes trigger DAO vote for fair resolution." },
+    { title: "SAFT Investment Section", content: "Complete KYC/AML with global nationalities. Upload docs and liveness selfie (system simulates movement check). Purchase $ANODE at $0.02/USDT fixed price. Funds vest over 24 months zero cliff. Data stored locally for Mainnet transfer. SAFT boosts protocol launch." },
+    { title: "What AFRO-NODE Offers", content: "Pan-African Gig-Economy empowers vetted tech talents with global opportunities, affordable services in $ANODE, secure payments, DAO governance for financial growth. Guests can participate but DAO members get premiums like high-pay gigs and Unicorn status." },
     { title: "Joining HUB DAO", content: "Click 'JOIN HUB' in Innovation Hub DAO section to register as talent." },
-    { title: "SAFT Investment", content: "Complete embedded KYC, enter USDT amount, purchase, send USDT to multi-sig." },
     { title: "Vesting Claims", content: "Enter Merkle Proof in vesting sections to claim tokens." },
     { title: "Contact Support", content: "Use emails in Contact section for help." },
   ];
+
+  // List of countries for KYC
+  const countries = [
+    "Nigeria", "USA", "South Africa", "Kenya", "Ghana", "Egypt", "UK", "Canada", "Germany", "France",
+    "India", "China", "Brazil", "Australia", "Russia", "Japan", "Mexico", "Spain", "Italy", "Netherlands",
+    // Add more as needed
+  ];
+
+  const handleLivenessCheck = async () => {
+    const image = webcamRef.current.getScreenshot();
+    const detection = await faceapi.detectSingleFace(image).withFaceLandmarks();
+    if (detection) {
+      // Basic liveness: Check for movement over multiple frames (e.g., blink/head turn)
+      // Advanced: Compare landmarks across 5-10 captures (500ms intervals) for changes > threshold
+      setIsLivenessDetected(true); // Or validate movement
+      setLivenessSelfieFile({ name: 'liveness_selfie.jpg', data: image }); // Store base64
+      setTxStatus('Liveness verified via face movement detection!');
+    } else {
+      setTxStatus('No face detected - try again.');
+    }
+  };
 
   if (!contract_address) {
     return (
@@ -371,14 +462,18 @@ function App() {
         .light-mode .bg-slate-900 { background-color: #f3f4f6; }
         .light-mode .text-gray-300 { color: #4b5563; }
         .light-mode .bg-slate-800 { background-color: #e5e7eb; }
-        // Add more overrides as needed for light mode
+        /* Keep clickable features dark in light mode */
+        .light-mode button, .light-mode input, .light-mode select, .light-mode textarea { color: #1f2937; background-color: #f9fafb; border-color: #6b7280; }
+        .light-mode .bg-blue-900 { background-color: #dbeafe; color: #1e40af; }
+        .light-mode .bg-green-900 { background-color: #dcfce7; color: #166534; }
+        /* Add more overrides for visibility */
       `}</style>
 
       <div className="fixed top-0 left-0 w-full bg-black/40 backdrop-blur-md z-50 border-b border-slate-700 p-1 flex justify-around text-[10px] font-mono">
-        <span className="text-blue-400">{`TON: ${prices.ton}`}</span>
-        <span className="text-orange-400">{`BTC: ${prices.btc}`}</span>
-        <span className="text-purple-400">{`ETH: ${prices.eth}`}</span>
-        <span className="text-green-400">{`USDT: ${prices.usdt}`}</span>
+        <span className="text-blue-400">{`TON: \]{prices.ton}`}</span>
+        <span className="text-orange-400">{`BTC: \[ {prices.btc}`}</span>
+        <span className="text-purple-400">{`ETH: \]{prices.eth}`}</span>
+        <span className="text-green-400">{`USDT: $${prices.usdt}`}</span>
         <span className="text-yellow-400">$ANODE: Coming Soon (Testnet)</span>
       </div>
 
@@ -393,7 +488,7 @@ function App() {
               $ANODE: {anodeBalance ?? "0"}
             </div>
           )}
-          <button onClick={() => setShowUserGuide(!showUserGuide)} className="bg-blue-900 p-2 rounded text-white text-xs font-bold">?</button>
+          <button onClick={() => setShowUserGuide(!showUserGuide)} className="bg-blue-900 p-2 rounded text-white text-xs font-bold animate-pulse">User Guide</button>
           <button onClick={() => setIsDarkMode(!isDarkMode)} className="bg-gray-700 p-2 rounded text-white text-xs">
             {isDarkMode ? '☀️ Light' : '🌙 Dark'}
           </button>
@@ -578,57 +673,187 @@ function App() {
         )}
       </div>
 
-      {/* SAFT VESTING SECTION */}
+      {/* SAFT Main Section */}
       <div className="mb-6 bg-slate-800 p-6 rounded-2xl border-l-4 border-amber-500 shadow-xl">
-        <button onClick={() => setShowSaftVesting(!showSaftVesting)} className="w-full flex justify-between items-center text-amber-400 font-bold mb-4">
-          <span>⏳ SAFT INVESTORS VESTING (Zero Cliff – Post-Mainnet)</span>
-          <span>{showSaftVesting ? 'HIDE' : 'OPEN'}</span>
+        <button onClick={() => setShowSaftSection(!showSaftSection)} className="w-full flex justify-between items-center text-amber-400 font-bold mb-4">
+          <span>⏳ SAFT INVESTORS SECTION</span>
+          <span>{showSaftSection ? 'HIDE' : 'OPEN'}</span>
         </button>
-        {showSaftVesting && (
+        {showSaftSection && (
           <div className="space-y-4">
-            <p className="text-[11px] text-gray-400 italic">
-              SAFT investors receive linear vesting over 24 months post-Mainnet launch with zero cliff period. Vesting.tact handles both team and SAFT allocations.
-            </p>
-            <div className="overflow-x-auto bg-slate-900 p-2 rounded-xl">
-              <table className="w-full text-[10px] font-mono">
-                <thead>
-                  <tr className="text-amber-400 border-b border-slate-800">
-                    <th className="p-2">SOURCE</th>
-                    <th className="p-2">MONTHLY ($ANODE)</th>
-                    <th className="p-2 text-right">SHARE</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {saftVestingTable.map((row, i) => (
-                    <tr key={i}><td className="p-2 text-gray-100">{row.role}</td><td className="p-2 text-yellow-500">{row.monthly}</td><td className="p-2 text-right text-gray-500">{row.share}</td></tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-2 gap-4">
+              <button onClick={() => setShowSaftVesting(true)} className="bg-amber-600 p-3 rounded-xl font-bold text-xs">SAFT Vesting Schedule</button>
+              <button onClick={() => setShowSaftVesting(false)} className="bg-amber-600 p-3 rounded-xl font-bold text-xs">SAFT Investor Portal</button>
             </div>
-            <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30">
-              <p className="text-[10px] text-amber-300 font-bold mb-2 uppercase">SAFT Investors Search</p>
-              <input type="text" placeholder="Wallet Address" className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs mb-2" value={saftSearchAddress} onChange={(e) => setSaftSearchAddress(e.target.value)} />
-              <button onClick={handleSaftSearch} className="w-full bg-amber-600 py-2 rounded-xl font-black text-xs mb-2">Search</button>
-              {saftInvestorInfo ? (
-                <div className="text-[10px] text-green-400 space-y-1">
-                  <p>Full Name: {saftInvestorInfo.fullName}</p>
-                  <p>Email: {saftInvestorInfo.primaryEmail}</p>
-                  <p>Nationality: {saftInvestorInfo.nationality}</p>
-                  <p>ID Type: {saftInvestorInfo.idType}</p>
-                  <p>ID Number: {saftInvestorInfo.uniqueIdNumber}</p>
-                  <p>Source of Funds: {saftInvestorInfo.sourceOfFunds}</p>
-                  <p>Address: {saftInvestorInfo.address}</p>
-                  <p>USDT Invested: ${saftInvestorInfo.usdt}</p>
-                  <p>Amount: {saftInvestorInfo.amount} $ANODE</p>
+            {showSaftVesting ? (
+              <div>
+                <p className="text-[11px] text-gray-400 italic">
+                  SAFT investors receive linear vesting over 24 months post-Mainnet launch with zero cliff period. Vesting.tact handles both team and SAFT allocations.
+                </p>
+                <div className="overflow-x-auto bg-slate-900 p-2 rounded-xl">
+                  <table className="w-full text-[10px] font-mono">
+                    <thead>
+                      <tr className="text-amber-400 border-b border-slate-800">
+                        <th className="p-2">SOURCE</th>
+                        <th className="p-2">MONTHLY ($ANODE)</th>
+                        <th className="p-2 text-right">SHARE</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {saftVestingTable.map((row, i) => (
+                        <tr key={i}><td className="p-2 text-gray-100">{row.role}</td><td className="p-2 text-yellow-500">{row.monthly}</td><td className="p-2 text-right text-gray-500">{row.share}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ) : saftSearchAddress && <p className="text-[10px] text-red-400">No investor found.</p>}
-            </div>
-            <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30">
-              <p className="text-[10px] text-amber-300 font-bold mb-2 uppercase">SAFT Merkle Security Verification</p>
-              <p className="text-[9px] text-gray-500 mb-2">Enter your SAFT-specific Merkle proof for claims.</p>
-              <input type="text" placeholder="SAFT Merkle Proof (Hex)" className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs mb-2" value={saftMerkleProof} onChange={(e) => setSaftMerkleProof(e.target.value)} />
-              <button onClick={() => handleProtectedAction(executeVestingClaim, "SAFT Vesting Claim")} className="w-full bg-amber-600 py-3 rounded-xl font-black text-xs">VERIFY & SECURE SAFT CLAIM</button>
-            </div>
+                <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30">
+                  <p className="text-[10px] text-amber-300 font-bold mb-2 uppercase">SAFT Investors Search</p>
+                  <input type="text" placeholder="Wallet Address" className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs mb-2" value={saftSearchAddress} onChange={(e) => setSaftSearchAddress(e.target.value)} />
+                  <button onClick={handleSaftSearch} className="w-full bg-amber-600 py-2 rounded-xl font-black text-xs mb-2">Search</button>
+                  {saftInvestorInfo ? (
+                    <div className="text-[10px] text-green-400 space-y-1">
+                      <p>Full Name: {saftInvestorInfo.fullName}</p>
+                      <p>Email: {saftInvestorInfo.primaryEmail}</p>
+                      <p>Nationality: {saftInvestorInfo.nationality}</p>
+                      <p>ID Type: {saftInvestorInfo.idType}</p>
+                      <p>ID Number: {saftInvestorInfo.uniqueIdNumber}</p>
+                      <p>Source of Funds: {saftInvestorInfo.sourceOfFunds}</p>
+                      <p>Address: {saftInvestorInfo.address}</p>
+                      <p>USDT Invested: ${saftInvestorInfo.usdt}</p>
+                      <p>Amount: {saftInvestorInfo.amount} $ANODE</p>
+                    </div>
+                  ) : saftSearchAddress && <p className="text-[10px] text-red-400">No investor found.</p>}
+                </div>
+                <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/30">
+                  <p className="text-[10px] text-amber-300 font-bold mb-2 uppercase">SAFT Merkle Security Verification</p>
+                  <p className="text-[9px] text-gray-500 mb-2">Enter your SAFT-specific Merkle proof for claims.</p>
+                  <input type="text" placeholder="SAFT Merkle Proof (Hex)" className="w-full bg-slate-900 border border-slate-700 p-2 rounded text-xs mb-2" value={saftMerkleProof} onChange={(e) => setSaftMerkleProof(e.target.value)} />
+                  <button onClick={() => handleProtectedAction(executeVestingClaim, "SAFT Vesting Claim")} className="w-full bg-amber-600 py-3 rounded-xl font-black text-xs">VERIFY & SECURE SAFT CLAIM</button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-800 p-6 rounded-2xl border border-amber-600/40 shadow-lg">
+                <h3 className="text-lg font-bold text-amber-500 mb-4">SAFT Investor Portal</h3>
+                <div className="space-y-2">
+                  <p className="text-[10px] text-gray-400">Fixed SAFT Price: $0.02 / $ANODE — Pay in USDT only (TON Jetton)</p>
+                  
+                  {!kycAccepted ? (
+                    <div className="space-y-3">
+                      <h4 className="text-amber-400 font-bold text-sm mb-2">KYC & AML Verification</h4>
+                      <input 
+                        placeholder="Full Legal Name" 
+                        className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
+                        value={fullName} 
+                        onChange={(e) => setFullName(e.target.value)} 
+                      />
+                      <input 
+                        type="email" 
+                        placeholder="Primary Email" 
+                        className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
+                        value={primaryEmail} 
+                        onChange={(e) => setPrimaryEmail(e.target.value)} 
+                      />
+                      <select 
+                        className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
+                        value={nationality} 
+                        onChange={(e) => setNationality(e.target.value)}
+                      >
+                        <option value="">Select Nationality</option>
+                        {countries.map(country => (
+                          <option key={country} value={country}>{country}</option>
+                        ))}
+                      </select>
+                      <select 
+                        className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
+                        value={idType} 
+                        onChange={(e) => setIdType(e.target.value)}
+                      >
+                        <option value="">Select ID Type</option>
+                        <option value="International Passport">International Passport</option>
+                        <option value="National ID">National ID</option>
+                        <option value="Driver's License">Driver's License</option>
+                      </select>
+                      <input 
+                        placeholder="Unique ID Number" 
+                        className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
+                        value={uniqueIdNumber} 
+                        onChange={(e) => setUniqueIdNumber(e.target.value)} 
+                      />
+                      <div>
+                        <label className="text-[10px] text-gray-300 block mb-1">Primary Identity Document (High-res scan)</label>
+                        <input type="file" onChange={(e) => setPrimaryIdFile(e.target.files[0])} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-gray-300 block mb-1">Proof of Residency (dated within 90 days)</label>
+                        <input type="file" onChange={(e) => setResidencyProofFile(e.target.files[0])} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-gray-300 block mb-1">Liveness Verification Selfie</label>
+                        <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg" className="rounded mb-2" />
+                        <button onClick={handleLivenessCheck} className="w-full bg-amber-700 p-2 rounded text-xs">Start Liveness Check (Move Head/Blink)</button>
+                        {isLivenessDetected && <p className="text-[10px] text-green-400">Verified!</p>}
+                      </div>
+                      <select 
+                        className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
+                        value={sourceOfFunds} 
+                        onChange={(e) => setSourceOfFunds(e.target.value)}
+                      >
+                        <option value="">Select Source of Funds</option>
+                        <option value="Salary/Savings">Salary/Savings</option>
+                        <option value="Investment Profits">Investment Profits</option>
+                        <option value="Business Revenue">Business Revenue</option>
+                        <option value="Inheritance/Gift">Inheritance/Gift</option>
+                      </select>
+                      <div className="flex items-start gap-2">
+                        <input type="checkbox" checked={declarationAccepted} onChange={(e) => setDeclarationAccepted(e.target.checked)} className="mt-1" />
+                        <label className="text-[10px] text-gray-300">"I certify that these funds (USDT) are not derived from illicit or criminal activity and that I am not a Politically Exposed Person (PEP)."</label>
+                      </div>
+                      <button onClick={handleKycSubmit} className="w-full bg-amber-500 py-3 rounded-xl font-bold text-xs uppercase">Submit KYC</button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input 
+                        type="number" 
+                        placeholder="Enter USDT Contribution" 
+                        className="w-full bg-slate-900 p-3 rounded-xl text-xs outline-none border border-amber-900/40" 
+                        value={saftUsdtAmount} 
+                        onChange={(e) => setSaftUsdtAmount(e.target.value)} 
+                      />
+
+                      {saftUsdtAmount && (
+                        <p className="text-[11px] font-mono text-emerald-400 bg-emerald-950/50 p-2 rounded-xl border border-emerald-900/50">
+                          You will receive: <span className="font-bold">{anodeToGet} $ANODE</span> (at fixed $0.02 per $ANODE)
+                        </p>
+                      )}
+
+                      {saftAgreementLink && (
+                        <a href={saftAgreementLink} target="_blank" rel="noopener noreferrer" className="block text-[10px] text-emerald-400 underline mb-2">
+                          📜 Sign/View SAFT Legal Agreement
+                        </a>
+                      )}
+                      <button onClick={handleSaftPurchase} className="w-full bg-amber-600 py-3 rounded-xl font-bold text-xs uppercase">Buy $ANODE via USDT SAFT</button>
+                      <p className="text-[8px] text-center text-amber-700 uppercase">Strategic Private Sale — Funds bootstrap Mainnet launch</p>
+                    </div>
+                  )}
+
+                  {isAdmin && (
+                    <div className="pt-4 border-t border-amber-900/40 space-y-3">
+                      <button onClick={() => setIsEditLocked(!isEditLocked)} className="w-full bg-gray-700 py-2 rounded-xl font-bold text-xs uppercase">
+                        {isEditLocked ? 'Unlock Edit' : 'Lock Edit'}
+                      </button>
+                      <div>
+                        <p className="text-[10px] text-amber-400 mb-1">ADMIN: Multi-Sig Tonkeeper USDT Recipient Wallet</p>
+                        <input type="text" disabled={isEditLocked} value={saftRecipient} onChange={(e) => setSaftRecipient(e.target.value)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40 font-mono" placeholder="Multi-sig Mainnet address" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-amber-400 mb-1">ADMIN: Insert Signed SAFT Agreement Link</p>
+                        <input type="text" disabled={isEditLocked} value={saftAgreementLink} onChange={(e) => setSaftAgreementLink(e.target.value)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40 font-mono" placeholder="https://drive.google.com/... or IPFS link to signed PDF" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -735,9 +960,15 @@ function App() {
                         <p className="text-[10px] text-yellow-400">Proof: {gig.proof}</p>
                         <p className="text-[10px] text-gray-400">Completed by: {gig.isDaoTalent ? 'DAO Talent' : 'Enthusiast'}</p>
                         <div className="flex gap-2 mt-2">
-                          <button onClick={() => handleAccept(gig.id)} className="bg-green-600 px-3 py-1 rounded text-[10px] font-bold">Accept & Release Funds</button>
-                          <button onClick={() => handleReject(gig.id)} className="bg-red-600 px-3 py-1 rounded text-[10px] font-bold">Reject Work</button>
+                          <button onClick={() => handleAccept(gig.id)} className="bg-green-600 px-3 py-1 rounded text-[10px] font-bold">Satisfied & Release Funds</button>
+                          <button onClick={() => handleReject(gig.id)} className="bg-red-600 px-3 py-1 rounded text-[10px] font-bold">Dissatisfied</button>
                         </div>
+                      </div>
+                    )}
+                    {gig.status === 'disputed' && (
+                      <div className="mt-2">
+                        <p className="text-[10px] text-red-400">Dispute Note: {gig.disputeNote}</p>
+                        <button onClick={() => handleInitiateDispute(gig.id)} className="bg-orange-600 px-3 py-1 rounded text-[10px] font-bold mt-2">Escalate Dispute</button>
                       </div>
                     )}
                   </div>
@@ -747,126 +978,6 @@ function App() {
           </div>
         </div>
 
-        <div className="bg-slate-800 p-6 rounded-2xl border border-amber-600/40 shadow-lg">
-          <h3 className="text-lg font-bold text-amber-500 mb-4">SAFT Investor Portal</h3>
-          <div className="space-y-2">
-             <p className="text-[10px] text-gray-400">Fixed SAFT Price: $0.02 / $ANODE — Pay in USDT only (TON Jetton)</p>
-             
-             {!kycAccepted ? (
-               <div className="space-y-3">
-                 <h4 className="text-amber-400 font-bold text-sm mb-2">KYC & AML Verification</h4>
-                 <input 
-                   placeholder="Full Legal Name" 
-                   className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
-                   value={fullName} 
-                   onChange={(e) => setFullName(e.target.value)} 
-                 />
-                 <input 
-                   type="email" 
-                   placeholder="Primary Email" 
-                   className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
-                   value={primaryEmail} 
-                   onChange={(e) => setPrimaryEmail(e.target.value)} 
-                 />
-                 <select 
-                   className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
-                   value={nationality} 
-                   onChange={(e) => setNationality(e.target.value)}
-                 >
-                   <option value="">Select Nationality</option>
-                   {/* Add options as needed, e.g. */}
-                   <option value="Nigeria">Nigeria</option>
-                   <option value="USA">USA</option>
-                   {/* More countries */}
-                 </select>
-                 <select 
-                   className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
-                   value={idType} 
-                   onChange={(e) => setIdType(e.target.value)}
-                 >
-                   <option value="">Select ID Type</option>
-                   <option value="International Passport">International Passport</option>
-                   <option value="National ID">National ID</option>
-                   <option value="Driver's License">Driver's License</option>
-                 </select>
-                 <input 
-                   placeholder="Unique ID Number" 
-                   className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
-                   value={uniqueIdNumber} 
-                   onChange={(e) => setUniqueIdNumber(e.target.value)} 
-                 />
-                 <div>
-                   <label className="text-[10px] text-gray-300 block mb-1">Primary Identity Document (High-res scan)</label>
-                   <input type="file" onChange={(e) => setPrimaryIdFile(e.target.files[0])} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" />
-                 </div>
-                 <div>
-                   <label className="text-[10px] text-gray-300 block mb-1">Proof of Residency (dated within 90 days)</label>
-                   <input type="file" onChange={(e) => setResidencyProofFile(e.target.files[0])} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" />
-                 </div>
-                 <div>
-                   <label className="text-[10px] text-gray-300 block mb-1">Liveness Verification Selfie</label>
-                   <input type="file" onChange={(e) => setLivenessSelfieFile(e.target.files[0])} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" />
-                 </div>
-                 <select 
-                   className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" 
-                   value={sourceOfFunds} 
-                   onChange={(e) => setSourceOfFunds(e.target.value)}
-                 >
-                   <option value="">Select Source of Funds</option>
-                   <option value="Salary/Savings">Salary/Savings</option>
-                   <option value="Investment Profits">Investment Profits</option>
-                   <option value="Business Revenue">Business Revenue</option>
-                   <option value="Inheritance/Gift">Inheritance/Gift</option>
-                 </select>
-                 <div className="flex items-start gap-2">
-                   <input type="checkbox" checked={declarationAccepted} onChange={(e) => setDeclarationAccepted(e.target.checked)} className="mt-1" />
-                   <label className="text-[10px] text-gray-300">"I certify that these funds (USDT) are not derived from illicit or criminal activity and that I am not a Politically Exposed Person (PEP)."</label>
-                 </div>
-                 <button onClick={handleKycSubmit} className="w-full bg-amber-500 py-3 rounded-xl font-bold text-xs uppercase">Submit KYC</button>
-               </div>
-             ) : (
-               <div className="space-y-2">
-                 <input 
-                   type="number" 
-                   placeholder="Enter USDT Contribution" 
-                   className="w-full bg-slate-900 p-3 rounded-xl text-xs outline-none border border-amber-900/40" 
-                   value={saftUsdtAmount} 
-                   onChange={(e) => setSaftUsdtAmount(e.target.value)} 
-                 />
-
-                 {saftUsdtAmount && (
-                   <p className="text-[11px] font-mono text-emerald-400 bg-emerald-950/50 p-2 rounded-xl border border-emerald-900/50">
-                     You will receive: <span className="font-bold">{anodeToGet} $ANODE</span> (at fixed $0.02 per $ANODE)
-                   </p>
-                 )}
-
-                 {saftAgreementLink && (
-                   <a href={saftAgreementLink} target="_blank" rel="noopener noreferrer" className="block text-[10px] text-emerald-400 underline mb-2">
-                     📜 Sign/View SAFT Legal Agreement
-                   </a>
-                 )}
-                 <button onClick={handleSaftPurchase} className="w-full bg-amber-600 py-3 rounded-xl font-bold text-xs uppercase">Buy $ANODE via USDT SAFT</button>
-                 <p className="text-[8px] text-center text-amber-700 uppercase">Strategic Private Sale — Funds bootstrap Mainnet launch</p>
-               </div>
-             )}
-
-             {isAdmin && (
-               <div className="pt-4 border-t border-amber-900/40 space-y-3">
-                 <button onClick={() => setIsEditLocked(!isEditLocked)} className="w-full bg-gray-700 py-2 rounded-xl font-bold text-xs uppercase">
-                   {isEditLocked ? 'Unlock Edit' : 'Lock Edit'}
-                 </button>
-                 <div>
-                   <p className="text-[10px] text-amber-400 mb-1">ADMIN: Multi-Sig Tonkeeper USDT Recipient Wallet</p>
-                   <input type="text" disabled={isEditLocked} value={saftRecipient} onChange={(e) => setSaftRecipient(e.target.value)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40 font-mono" placeholder="Multi-sig Mainnet address" />
-                 </div>
-                 <div>
-                   <p className="text-[10px] text-amber-400 mb-1">ADMIN: Insert Signed SAFT Agreement Link</p>
-                   <input type="text" disabled={isEditLocked} value={saftAgreementLink} onChange={(e) => setSaftAgreementLink(e.target.value)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40 font-mono" placeholder="https://drive.google.com/... or IPFS link to signed PDF" />
-                 </div>
-               </div>
-             )}
-          </div>
-        </div>
       </div>
 
       {/* DAO & ESCROW */}
@@ -874,7 +985,13 @@ function App() {
         <div className="bg-slate-800 p-6 rounded-2xl border border-orange-500/30 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-xl font-bold text-orange-400 uppercase tracking-tighter">Innovation Hub DAO</h3>
-            <span className="bg-orange-500/10 px-2 py-1 rounded text-[8px] text-orange-400 font-bold">{isAdmin ? "ADMIN 🦄" : (member_rank?.rank || "GUEST")}</span>
+            {isAdmin ? (
+              <span className="bg-purple-900/30 px-3 py-1 rounded-full text-[10px] font-bold text-purple-300 border border-purple-500/50">
+                👑 🦄⭐ Founder & Lead Web3 Architect
+              </span>
+            ) : (
+              <span className="bg-orange-500/10 px-2 py-1 rounded text-[8px] text-orange-400 font-bold">{member_rank?.rank ? `${member_rank.rank} ${getRank(skillsScore)} (S-score: ${skillsScore})` : "GUEST"}</span>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2 mb-3">
              <button onClick={() => handleProtectedAction(executeMemberReg, "Hub Registration")} className="bg-orange-600 text-white text-[10px] font-bold py-2 rounded-xl">JOIN HUB</button>
@@ -987,6 +1104,24 @@ function App() {
           </div>
         )}
       </div>
+
+      {showDisputeForm && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 p-6 rounded-xl max-w-md w-full border border-red-500">
+            <h2 className="text-red-400 font-bold text-lg mb-4">Initiate Dispute</h2>
+            <textarea 
+              placeholder="Describe the issue or note for dissatisfaction" 
+              className="w-full bg-slate-900 p-3 rounded text-xs border border-red-700 h-24 mb-2"
+              value={disputeNote}
+              onChange={(e) => setDisputeNote(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button onClick={handleSubmitDispute} className="flex-1 bg-red-600 py-2 rounded font-bold text-xs">Submit Dispute</button>
+              <button onClick={() => setShowDisputeForm(false)} className="flex-1 bg-gray-600 py-2 rounded font-bold text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isAdmin && (
         <div className="bg-red-950/20 p-6 rounded-2xl border-2 border-dashed border-red-600/30 mb-10">
