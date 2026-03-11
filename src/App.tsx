@@ -94,8 +94,14 @@ function App() {
   // Skills score logic for DAO members
   const [skillsScore, setSkillsScore] = useState(0); // Simulated skills score, in real integrate with contract
 
-  // Liveness detection states
-  const webcamRef = useRef(null);
+  // Liveness detection states (global security layer)
+  const [isLivenessVerified, setIsLivenessVerified] = useState(false);
+  const [showLivenessModal, setShowLivenessModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const livenessWebcamRef = useRef<Webcam>(null);
+
+  // SAFT liveness (kept intact)
+  const webcamRef = useRef<Webcam>(null);
   const [isLivenessDetected, setIsLivenessDetected] = useState(false);
 
   const {
@@ -160,7 +166,6 @@ function App() {
 
   // Simulate skills score update (in real, fetch from contract)
   useEffect(() => {
-    // For demo, set based on member_rank or something
     if (member_rank?.rank) {
       setSkillsScore(Math.floor(Math.random() * 250)); // Random for demo
     }
@@ -181,7 +186,7 @@ function App() {
     return currentRaw === adminRaw;
   }, [wallet]);
 
-  const handleProtectedAction = async (action, label) => {
+  const handleProtectedAction = async (action: () => Promise<void>, label: string) => {
     if (!connected) {
       tonConnectUI.openModal();
       setTxStatus("Please connect your wallet.");
@@ -191,8 +196,39 @@ function App() {
     try {
       await action();
       setTxStatus(`✓ ${label} successful!`);
-    } catch (err) {
+    } catch (err: any) {
       setTxStatus(`✗ ${label} failed: ${err.message}`);
+    }
+  };
+
+  // Global Liveness Security Layer (for DAO, Marketplace, Disputes)
+  const requireLiveness = (action: () => void) => {
+    if (isLivenessVerified) {
+      action();
+    } else {
+      setPendingAction(() => action);
+      setShowLivenessModal(true);
+    }
+  };
+
+  const handleGlobalLivenessCheck = async () => {
+    if (!livenessWebcamRef.current) return;
+    const image = livenessWebcamRef.current.getScreenshot();
+    if (!image) {
+      setTxStatus('Camera not ready - try again.');
+      return;
+    }
+    const detection = await faceapi.detectSingleFace(image).withFaceLandmarks();
+    if (detection) {
+      setIsLivenessVerified(true);
+      setTxStatus('✅ Liveness verified! (2-second face scan complete)');
+      setShowLivenessModal(false);
+      if (pendingAction) {
+        pendingAction();
+        setPendingAction(null);
+      }
+    } else {
+      setTxStatus('No face detected - try again.');
     }
   };
 
@@ -216,7 +252,8 @@ function App() {
         budget: totalToLock.toFixed(2),
         status: 'open',
         proof: '',
-        isDaoTalent: false
+        isDaoTalent: false,
+        workersCount: 0
       }]);
       setJobDescription("");
       setJobBudget("");
@@ -228,7 +265,6 @@ function App() {
       setTxStatus("Please complete all KYC fields and declarations.");
       return;
     }
-    // Simulate file checks (in real, validate files)
     if (!primaryIdFile || !residencyProofFile || !livenessSelfieFile) {
       setTxStatus("Please upload all required documents.");
       return;
@@ -239,7 +275,6 @@ function App() {
       nationality,
       idType,
       uniqueIdNumber,
-      // Files would be uploaded to server in real app
       primaryIdFile: primaryIdFile.name,
       residencyProofFile: residencyProofFile.name,
       livenessSelfieFile: livenessSelfieFile.name,
@@ -248,14 +283,13 @@ function App() {
     setKycData(data);
     setKycAccepted(true);
     setTxStatus("KYC submitted successfully. Proceed to investment.");
-    // Reset form if needed, but keep for review
   };
 
   const handleSaftPurchase = () => {
     const usdt = Number(saftUsdtAmount);
     const anodeQty = Number(anodeToGet);
     if (!usdt || usdt <= 0 || anodeQty > SAFT_MAX_PER_TX) {
-      setTxStatus(`Invalid amount. Max per purchase: ${SAFT_MAX_PER_TX.toLocaleString()} $ANODE (\[ {SAFT_MAX_PER_TX * 0.02} USDT)`);
+      setTxStatus(`Invalid amount. Max per purchase: ${SAFT_MAX_PER_TX.toLocaleString()} $ANODE (at $0.02 USDT)`);
       return;
     }
     if (!kycAccepted || !kycData) {
@@ -273,7 +307,6 @@ function App() {
         "kyc_status": "VERIFIED",
         "vesting_type": "LINEAR_24_MONTHS_ZERO_CLIFF"
       };
-      // In real, send to backend database
       console.log("Mainnet Handshake Data:", JSON.stringify(handshake, null, 2));
       setTxStatus(
         `KYC/Whitelist verified.\n\n` +
@@ -284,7 +317,6 @@ function App() {
         `You will receive ${anodeQty} $ANODE (vested over 24 months).\n` +
         `Handshake Data logged to console for Mainnet prep.`
       );
-      // Add to local investors
       setSaftInvestors(prev => [...prev, { ...kycData, address: wallet?.account?.address, usdt: usdt, amount: anodeQty }]);
       setSaftUsdtAmount("");
     }, "SAFT Purchase");
@@ -302,12 +334,12 @@ function App() {
     setNewItemPrice("");
   };
 
-  const handleUpdateMarketPrice = (id, newPrice) => {
+  const handleUpdateMarketPrice = (id: number, newPrice: string) => {
     if (isEditLocked) return;
     executeUpdateMarketPrice(id, newPrice);
   };
 
-  const handleRemoveMarketItem = (id) => {
+  const handleRemoveMarketItem = (id: number) => {
     if (isEditLocked) return;
     executeRemoveMarketItem(id);
   };
@@ -326,30 +358,27 @@ function App() {
     const updated = [...postedGigs];
     updated[index].status = 'submitted';
     updated[index].proof = proof;
-    updated[index].isDaoTalent = !!member_rank?.rank; // Check if submitter is DAO member
+    updated[index].isDaoTalent = !!member_rank?.rank;
+    updated[index].workersCount = (updated[index].workersCount || 0) + 1;
     setPostedGigs(updated);
     setSubmitTaskId("");
     setProof("");
     setTxStatus("Work submitted successfully. Awaiting client review.");
   };
 
-  const handleAccept = (id) => {
+  const handleAccept = (id: number) => {
     const index = postedGigs.findIndex(g => g.id === id);
     if (index === -1) return;
-    const gig = postedGigs[index];
-    const remittance = gig.isDaoTalent ? 15 : 10;
-    // In real, call contract to release funds
     const updated = [...postedGigs];
     updated[index].status = 'completed';
     setPostedGigs(updated);
-    setTxStatus(`Funds released successfully. ${remittance}% remittance applied to Treasury.`);
-    // Update skills score if DAO talent
-    if (gig.isDaoTalent) {
+    setTxStatus(`Funds released successfully. ${updated[index].isDaoTalent ? '15' : '10'}% remittance applied to Treasury.`);
+    if (updated[index].isDaoTalent) {
       setSkillsScore(prev => prev + 1);
     }
   };
 
-  const handleReject = (id) => {
+  const handleReject = (id: number) => {
     const index = postedGigs.findIndex(g => g.id === id);
     if (index === -1) return;
     setSelectedGigIdForDispute(id);
@@ -372,13 +401,12 @@ function App() {
     setTxStatus("Work rejected and dispute initiated. Talent can respond or escalate.");
   };
 
-  const handleInitiateDispute = (id) => {
-    // For talents/users to initiate dispute
+  const handleInitiateDispute = (id: number) => {
     setSelectedGigIdForDispute(id);
     setShowDisputeForm(true);
   };
 
-  const getRank = (score) => {
+  const getRank = (score: number) => {
     if (score >= 200) return 'Legend 🌟';
     if (score >= 151) return 'Master 🏆';
     if (score >= 101) return 'Expert 🧠';
@@ -404,12 +432,12 @@ function App() {
     { title: "Connecting Your Wallet", content: "Click the TonConnect button in the header to connect your TON wallet." },
     { title: "Posting a Gig as Client", content: "In Client Gigs Portal, enter description and budget. The system adds 10% escrow fee automatically. Post to lock funds in Escrow.tact smart contract for security. Funds are released only after you confirm satisfaction." },
     { title: "Participating in Gigs as Talent or User", content: "Verified Talents in Innovation HUB DAO and normal users/enthusiasts/guests can submit work for posted gigs. DAO Talents get exclusive access to high-paying gigs. Submit proof via Task ID. Client reviews and accepts/rejects. Escrow tracks submitter's wallet ID to determine if DAO member (via HubDAO.fc) for remittance: 15% treasury for DAO (85% to talent), 10% for users (90% to user)." },
-    { title: "Skills Score System in HUB DAO", content: "Newly registered Vetted Talents start with 0-30 S-score (Rookie 🐣). Complete high-technical gigs to increase S-score by 1 per paid job. 200+ S-score ranks as Unicorn 🦄. S-score reflects completed gigs in DAO, empowering talents financially through better opportunities." },
+    { title: "Skills Score System in HUB DAO", content: "Newly registered Vetted Talents start with 0 S-score. Ranks: Rookie 🐣 (0-19), Emerging 🚀 (20-30), Novice 📚 (31-60), Skilled ⚙️ (61-100), Expert 🧠 (101-150), Master 🏆 (151-199), Legend 🌟 (200+). Complete high-technical gigs to increase S-score by 1 per paid job. S-score reflects completed gigs in DAO, empowering talents financially through better opportunities." },
     { title: "Escrow Security & Payments", content: "Escrow.tact creates secure 🔐 payments. Triple deduction: 10% escrow fee, plus remittance (15% DAO/10% user). Smart contract holds funds until client satisfaction. Protects clients from incomplete work, talents from non-payment." },
     { title: "Dispute Resolution", content: "If dissatisfied, client adds note and rejects. Talent can redo or initiate dispute via complaints portal. Escalated disputes trigger DAO vote for fair resolution." },
     { title: "SAFT Investment Section", content: "Complete KYC/AML with global nationalities. Upload docs and liveness selfie (system simulates movement check). Purchase $ANODE at $0.02/USDT fixed price. Funds vest over 24 months zero cliff. Data stored locally for Mainnet transfer. SAFT boosts protocol launch." },
-    { title: "What AFRO-NODE Offers", content: "Pan-African Gig-Economy empowers vetted tech talents with global opportunities, affordable services in $ANODE, secure payments, DAO governance for financial growth. Guests can participate but DAO members get premiums like high-pay gigs and Unicorn status." },
-    { title: "Joining HUB DAO", content: "Click 'JOIN HUB' in Innovation Hub DAO section to register as talent." },
+    { title: "What AFRO-NODE Offers", content: "Pan-African Gig-Economy empowers vetted tech talents with global opportunities, affordable services in $ANODE, secure payments, DAO governance for financial growth. Guests can participate but DAO members get premiums like high-pay gigs and Legend status." },
+    { title: "Joining HUB DAO", content: "Click 'JOIN HUB' in Innovation Hub DAO section to register as talent. Liveness verification required to prevent Sybil attacks." },
     { title: "Vesting Claims", content: "Enter Merkle Proof in vesting sections to claim tokens." },
     { title: "Contact Support", content: "Use emails in Contact section for help." },
   ];
@@ -418,17 +446,15 @@ function App() {
   const countries = [
     "Nigeria", "USA", "South Africa", "Kenya", "Ghana", "Egypt", "UK", "Canada", "Germany", "France",
     "India", "China", "Brazil", "Australia", "Russia", "Japan", "Mexico", "Spain", "Italy", "Netherlands",
-    // Add more as needed
   ];
 
   const handleLivenessCheck = async () => {
-    const image = webcamRef.current.getScreenshot();
+    const image = webcamRef.current?.getScreenshot();
+    if (!image) return;
     const detection = await faceapi.detectSingleFace(image).withFaceLandmarks();
     if (detection) {
-      // Basic liveness: Check for movement over multiple frames (e.g., blink/head turn)
-      // Advanced: Compare landmarks across 5-10 captures (500ms intervals) for changes > threshold
-      setIsLivenessDetected(true); // Or validate movement
-      setLivenessSelfieFile({ name: 'liveness_selfie.jpg', data: image }); // Store base64
+      setIsLivenessDetected(true);
+      setLivenessSelfieFile({ name: 'liveness_selfie.jpg', data: image });
       setTxStatus('Liveness verified via face movement detection!');
     } else {
       setTxStatus('No face detected - try again.');
@@ -462,19 +488,17 @@ function App() {
         .light-mode .bg-slate-900 { background-color: #f3f4f6; }
         .light-mode .text-gray-300 { color: #4b5563; }
         .light-mode .bg-slate-800 { background-color: #e5e7eb; }
-        /* Keep clickable features dark in light mode */
         .light-mode button, .light-mode input, .light-mode select, .light-mode textarea { color: #1f2937; background-color: #f9fafb; border-color: #6b7280; }
         .light-mode .bg-blue-900 { background-color: #dbeafe; color: #1e40af; }
         .light-mode .bg-green-900 { background-color: #dcfce7; color: #166534; }
-        /* Add more overrides for visibility */
       `}</style>
 
       <div className="fixed top-0 left-0 w-full bg-black/40 backdrop-blur-md z-50 border-b border-slate-700 p-1 flex justify-around text-[10px] font-mono">
-        <span className="text-blue-400">{`TON: \]{prices.ton}`}</span>
-        <span className="text-orange-400">{`BTC: \[ {prices.btc}`}</span>
-        <span className="text-purple-400">{`ETH: \]{prices.eth}`}</span>
-        <span className="text-green-400">{`USDT: $${prices.usdt}`}</span>
-        <span className="text-yellow-400">$ANODE: Coming Soon (Testnet)</span>
+        <span className="text-blue-400">TON: ${prices.ton}</span>
+        <span className="text-orange-400">BTC: ${prices.btc}</span>
+        <span className="text-purple-400">ETH: ${prices.eth}</span>
+        <span className="text-green-400">USDT: ${prices.usdt}</span>
+        <span className="text-yellow-400">$ANODE: Coming Soon Testnet</span>
       </div>
 
       <div className="header mt-6 flex justify-between items-center mb-6 bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
@@ -489,9 +513,6 @@ function App() {
             </div>
           )}
           <button onClick={() => setShowUserGuide(!showUserGuide)} className="bg-blue-900 p-2 rounded text-white text-xs font-bold animate-pulse">User Guide</button>
-          <button onClick={() => setIsDarkMode(!isDarkMode)} className="bg-gray-700 p-2 rounded text-white text-xs">
-            {isDarkMode ? '☀️ Light' : '🌙 Dark'}
-          </button>
           <TonConnectButton />
         </div>
       </div>
@@ -682,8 +703,18 @@ function App() {
         {showSaftSection && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => setShowSaftVesting(true)} className="bg-amber-600 p-3 rounded-xl font-bold text-xs">SAFT Vesting Schedule</button>
-              <button onClick={() => setShowSaftVesting(false)} className="bg-amber-600 p-3 rounded-xl font-bold text-xs">SAFT Investor Portal</button>
+              <button 
+                onClick={() => setShowSaftVesting(true)} 
+                className="bg-amber-600 p-3 rounded-xl font-bold text-xs"
+              >
+                {showSaftVesting ? 'CLOSE' : 'OPEN'} SAFT VESTING SCHEDULE
+              </button>
+              <button 
+                onClick={() => setShowSaftVesting(false)} 
+                className="bg-amber-600 p-3 rounded-xl font-bold text-xs"
+              >
+                {showSaftVesting ? 'OPEN' : 'CLOSE'} SAFT INVESTOR PORTAL
+              </button>
             </div>
             {showSaftVesting ? (
               <div>
@@ -781,11 +812,11 @@ function App() {
                       />
                       <div>
                         <label className="text-[10px] text-gray-300 block mb-1">Primary Identity Document (High-res scan)</label>
-                        <input type="file" onChange={(e) => setPrimaryIdFile(e.target.files[0])} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" />
+                        <input type="file" onChange={(e) => setPrimaryIdFile(e.target.files?.[0] || null)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" />
                       </div>
                       <div>
                         <label className="text-[10px] text-gray-300 block mb-1">Proof of Residency (dated within 90 days)</label>
-                        <input type="file" onChange={(e) => setResidencyProofFile(e.target.files[0])} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" />
+                        <input type="file" onChange={(e) => setResidencyProofFile(e.target.files?.[0] || null)} className="w-full bg-slate-900 p-2 rounded text-xs border border-amber-900/40" />
                       </div>
                       <div>
                         <label className="text-[10px] text-gray-300 block mb-1">Liveness Verification Selfie</label>
@@ -903,7 +934,7 @@ function App() {
               </div>
               <div className="p-4 bg-yellow-600/5 border border-yellow-600/20 rounded-xl">
                 <p className="font-black text-yellow-500 uppercase mb-2">Equity & Intellectual Property Declaration</p>
-                <p>The corporate and business equity of AFRO-NODE DApp as an LLC, along with all associated Intellectual Property, remains 100% owned by the Founder, CEO & Lead Web3 Architect Tor-Anyiin Princewill Moses.</p>
+                <p>The corporate and business equity of AFRO-NODE DApp as an LLC, along with all associated Intellectual Property which includes the entire 6 smart contracts source codes (5 Tact and 1 FunC) that constitutes AFRO-NODE DApp's Back-End & the entire Front-End UI/UX logic source codes : remains 100% owned by the Founder, CEO & Lead Web3 Architect Tor-Anyiin Princewill Moses.</p>
               </div>
             </div>
           </div>
@@ -955,6 +986,9 @@ function App() {
                     <p className="font-bold text-blue-300 leading-tight">{gig.description}</p>
                     <p className="text-emerald-400 mt-1">Budget: {gig.budget} $ANODE (incl. 10% escrow fee)</p>
                     <p className="text-[10px] text-gray-500 mt-1">Status: {gig.status.toUpperCase()}</p>
+                    {gig.workersCount > 0 && (
+                      <p className="text-purple-400 text-[10px] mt-1">👷 Work initiated by {gig.workersCount} people (Talent/Guest)</p>
+                    )}
                     {gig.status === 'submitted' && (
                       <div className="mt-2">
                         <p className="text-[10px] text-yellow-400">Proof: {gig.proof}</p>
@@ -994,7 +1028,12 @@ function App() {
             )}
           </div>
           <div className="grid grid-cols-2 gap-2 mb-3">
-             <button onClick={() => handleProtectedAction(executeMemberReg, "Hub Registration")} className="bg-orange-600 text-white text-[10px] font-bold py-2 rounded-xl">JOIN HUB</button>
+             <button 
+               onClick={() => requireLiveness(() => handleProtectedAction(executeMemberReg, "Hub Registration"))} 
+               className="bg-orange-600 text-white text-[10px] font-bold py-2 rounded-xl"
+             >
+               JOIN HUB
+             </button>
              <button onClick={() => handleProtectedAction(() => executeTalentPayment(100), "Claim Pay")} className="border border-orange-600 text-orange-500 text-[10px] font-bold py-2 rounded-xl">CLAIM PAY</button>
           </div>
           <div className="flex gap-2">
@@ -1027,11 +1066,44 @@ function App() {
                     <button onClick={() => handleRemoveMarketItem(item.id)} className="text-red-500 text-xs">Remove</button>
                   </div>
                 ) : (
-                  <button onClick={() => handleProtectedAction(() => executeAnodePayment('m', item.id, item.price), "Market Order")} className="bg-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase">{item.price}</button>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => requireLiveness(() => handleProtectedAction(() => executeAnodePayment('m', item.id, item.price), "Market Order"))} 
+                      className="bg-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase"
+                    >
+                      {item.price}
+                    </button>
+                    {isLivenessVerified && <span className="text-emerald-400 text-[9px] font-bold">✅ Verified Human</span>}
+                  </div>
                 )}
               </div>
             ))}
           </div>
+
+          {/* Live Client Gigs in Marketplace Listings (with total count & unique ID) */}
+          <div className="mt-8 pt-4 border-t border-slate-700">
+            <h4 className="uppercase text-blue-400 text-xs font-bold mb-3 flex justify-between items-center">
+              Live Client Gigs <span className="text-emerald-400 font-mono">({postedGigs.length})</span>
+            </h4>
+            <div className="space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-2">
+              {postedGigs.length === 0 ? (
+                <p className="text-xs text-gray-500 italic">No gigs posted yet</p>
+              ) : (
+                postedGigs.map((gig) => (
+                  <div key={gig.id} className="bg-slate-900 p-3 rounded-xl text-xs border border-blue-800/50">
+                    <p className="font-bold text-blue-300">Task ID: {gig.id}</p>
+                    <p className="leading-tight text-gray-300 mt-1">{gig.description}</p>
+                    <p className="text-emerald-400 mt-1">Budget: {gig.budget} $ANODE</p>
+                    <p className="text-[10px] text-gray-500">Status: {gig.status.toUpperCase()}</p>
+                    {gig.workersCount > 0 && (
+                      <p className="text-purple-400 text-[10px]">👷 Work initiated by {gig.workersCount} people (Talent/Guest)</p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
           {isAdmin && !isEditLocked && (
             <div className="mt-4 space-y-2">
               <input 
@@ -1116,9 +1188,39 @@ function App() {
               onChange={(e) => setDisputeNote(e.target.value)}
             />
             <div className="flex gap-2">
-              <button onClick={handleSubmitDispute} className="flex-1 bg-red-600 py-2 rounded font-bold text-xs">Submit Dispute</button>
+              <button 
+                onClick={() => requireLiveness(handleSubmitDispute)} 
+                className="flex-1 bg-red-600 py-2 rounded font-bold text-xs"
+              >
+                Submit Dispute
+              </button>
               <button onClick={() => setShowDisputeForm(false)} className="flex-1 bg-gray-600 py-2 rounded font-bold text-xs">Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Liveness Modal - Security Layer for DAO / Marketplace / Disputes */}
+      {showLivenessModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 p-6 rounded-xl max-w-md w-full border border-emerald-500">
+            <div className="flex justify-between mb-4">
+              <h2 className="text-emerald-400 font-bold text-lg">Liveness Verification</h2>
+              <button onClick={() => setShowLivenessModal(false)} className="text-red-500">Cancel</button>
+            </div>
+            <p className="text-xs text-gray-300 mb-4">2-second face scan required for security. Confirms you are the same human who registered the wallet (prevents Sybil attacks).</p>
+            <Webcam 
+              audio={false} 
+              ref={livenessWebcamRef} 
+              screenshotFormat="image/jpeg" 
+              className="rounded mb-4 w-full" 
+            />
+            <button 
+              onClick={handleGlobalLivenessCheck} 
+              className="w-full bg-emerald-600 py-3 rounded-xl font-bold text-xs"
+            >
+              START LIVENESS CHECK (Move Head / Blink)
+            </button>
           </div>
         </div>
       )}
@@ -1139,6 +1241,16 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Floating Light/Dark Mode Button (side of DApp) */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button 
+          onClick={() => setIsDarkMode(!isDarkMode)} 
+          className="bg-gray-700 hover:bg-gray-600 p-3 rounded-2xl text-white text-xs shadow-2xl flex items-center gap-2 transition-all active:scale-95"
+        >
+          {isDarkMode ? '☀️ Light' : '🌙 Dark'}
+        </button>
+      </div>
 
       {txStatus && (
         <div 
