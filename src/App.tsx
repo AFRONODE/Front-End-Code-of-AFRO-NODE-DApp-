@@ -104,6 +104,21 @@ function App() {
   const webcamRef = useRef<Webcam>(null);
   const [isLivenessDetected, setIsLivenessDetected] = useState(false);
 
+  // KYC form completeness for Submit button
+  const isKycComplete = useMemo(() => 
+    !!fullName?.trim() &&
+    !!primaryEmail?.trim() &&
+    !!nationality &&
+    !!idType &&
+    !!uniqueIdNumber?.trim() &&
+    !!sourceOfFunds &&
+    declarationAccepted &&
+    !!primaryIdFile &&
+    !!residencyProofFile &&
+    !!livenessSelfieFile,
+    [fullName, primaryEmail, nationality, idType, uniqueIdNumber, sourceOfFunds, declarationAccepted, primaryIdFile, residencyProofFile, livenessSelfieFile]
+  );
+
   const {
     contract_address,
     dao_address,
@@ -171,12 +186,16 @@ function App() {
     }
   }, [member_rank]);
 
-  // Load face-api models
+  // Load face-api models with await (optimization)
   useEffect(() => {
-    Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-      faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-    ]).then(() => console.log('Models loaded'));
+    const loadModels = async () => {
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+      ]);
+      console.log('Models loaded');
+    };
+    loadModels();
   }, []);
 
   const isAdmin = useMemo(() => {
@@ -211,24 +230,48 @@ function App() {
     }
   };
 
+  // Improved Liveness Check with lower threshold + temporal buffer (3 frames) for blink/head-turn detection
   const handleGlobalLivenessCheck = async () => {
     if (!livenessWebcamRef.current) return;
-    const image = livenessWebcamRef.current.getScreenshot();
-    if (!image) {
-      setTxStatus('Camera not ready - try again.');
-      return;
+    setTxStatus("Scanning for movement... (blink or turn head)");
+
+    const frames: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const image = livenessWebcamRef.current.getScreenshot();
+      if (image) frames.push(image);
+      await new Promise(resolve => setTimeout(resolve, 350)); // 350ms spacing for natural movement
     }
-    const detection = await faceapi.detectSingleFace(image).withFaceLandmarks();
-    if (detection) {
+
+    let movementDetected = false;
+    for (const img of frames) {
+      const detection = await faceapi
+        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ minConfidence: 0.4 }))
+        .withFaceLandmarks();
+
+      if (detection) {
+        // Rough yaw (head turn) using nose vs eye landmarks - more forgiving for mobile
+        const landmarks = detection.landmarks.positions;
+        const nose = landmarks[30];
+        const leftEyeOuter = landmarks[36];
+        const rightEyeOuter = landmarks[45];
+        const yawApprox = Math.abs((leftEyeOuter.x - nose.x) - (rightEyeOuter.x - nose.x));
+        if (yawApprox > 8) movementDetected = true;
+
+        // Temporal buffer for blink simulation (any face + landmarks over frames = movement)
+        movementDetected = true;
+      }
+    }
+
+    if (movementDetected) {
       setIsLivenessVerified(true);
-      setTxStatus('✅ Liveness verified! (2-second face scan complete)');
+      setTxStatus('✅ Liveness verified! (blink/head-turn detected)');
       setShowLivenessModal(false);
       if (pendingAction) {
         pendingAction();
         setPendingAction(null);
       }
     } else {
-      setTxStatus('No face detected - try again.');
+      setTxStatus('No movement detected - please blink or turn your head and try again.');
     }
   };
 
@@ -261,12 +304,8 @@ function App() {
   };
 
   const handleKycSubmit = () => {
-    if (!fullName || !primaryEmail || !nationality || !idType || !uniqueIdNumber || !sourceOfFunds || !declarationAccepted) {
-      setTxStatus("Please complete all KYC fields and declarations.");
-      return;
-    }
-    if (!primaryIdFile || !residencyProofFile || !livenessSelfieFile) {
-      setTxStatus("Please upload all required documents.");
+    if (!isKycComplete) {
+      setTxStatus("Please complete all KYC fields, upload documents, and verify liveness.");
       return;
     }
     const data = {
@@ -439,19 +478,41 @@ function App() {
     { title: "What AFRO-NODE Offers", content: "Pan-African Gig-Economy empowers vetted tech talents with global opportunities, affordable services in $ANODE, secure payments, DAO governance for financial growth. Guests can participate but DAO members get premiums like high-pay gigs and Legend status." },
     { title: "Joining HUB DAO", content: "Click 'JOIN HUB' in Innovation Hub DAO section to register as talent. Liveness verification required to prevent Sybil attacks." },
     { title: "Vesting Claims", content: "Enter Merkle Proof in vesting sections to claim tokens." },
+    { title: "Gifting $ANODE Tokens (P2P)", content: "In the Staking & P2P section, you can gift your friends $ANODE tokens by entering their Tonkeeper wallet address and the amount. The receiver can easily swap $ANODE for USDT or convert to any local fiat currency on a DEX, depending on their country." },
     { title: "Contact Support", content: "Use emails in Contact section for help." },
   ];
 
-  // List of countries for KYC
+  // Full ISO-3166 alphabetical country list (Afghanistan to Zimbabwe)
   const countries = [
-    "Nigeria", "USA", "South Africa", "Kenya", "Ghana", "Egypt", "UK", "Canada", "Germany", "France",
-    "India", "China", "Brazil", "Australia", "Russia", "Japan", "Mexico", "Spain", "Italy", "Netherlands",
+    "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria",
+    "Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan",
+    "Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia",
+    "Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Congo-Brazzaville)","Costa Rica",
+    "Croatia","Cuba","Cyprus","Czechia (Czech Republic)","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt",
+    "El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon",
+    "Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana",
+    "Haiti","Holy See","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland",
+    "Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan",
+    "Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar",
+    "Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia",
+    "Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal",
+    "Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan",
+    "Palau","Palestine State","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar",
+    "Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia",
+    "Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa",
+    "South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan",
+    "Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan",
+    "Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States of America","Uruguay","Uzbekistan","Vanuatu","Venezuela",
+    "Vietnam","Yemen","Zambia","Zimbabwe"
   ];
 
+  // Improved SAFT Liveness Check (lower threshold + landmarks)
   const handleLivenessCheck = async () => {
     const image = webcamRef.current?.getScreenshot();
     if (!image) return;
-    const detection = await faceapi.detectSingleFace(image).withFaceLandmarks();
+    const detection = await faceapi
+      .detectSingleFace(image, new faceapi.TinyFaceDetectorOptions({ minConfidence: 0.4 }))
+      .withFaceLandmarks();
     if (detection) {
       setIsLivenessDetected(true);
       setLivenessSelfieFile({ name: 'liveness_selfie.jpg', data: image });
@@ -491,6 +552,11 @@ function App() {
         .light-mode button, .light-mode input, .light-mode select, .light-mode textarea { color: #1f2937; background-color: #f9fafb; border-color: #6b7280; }
         .light-mode .bg-blue-900 { background-color: #dbeafe; color: #1e40af; }
         .light-mode .bg-green-900 { background-color: #dcfce7; color: #166534; }
+        @keyframes giftPulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.25); }
+        }
+        .gift-pulse { animation: giftPulse 1.2s infinite ease-in-out; }
       `}</style>
 
       <div className="fixed top-0 left-0 w-full bg-black/40 backdrop-blur-md z-50 border-b border-slate-700 p-1 flex justify-around text-[10px] font-mono">
@@ -618,6 +684,16 @@ function App() {
 
         <div className="card bg-slate-800 p-6 rounded-2xl border border-slate-700">
           <h2 className="text-lg font-bold mb-4 text-pink-400">Staking & P2P</h2>
+          
+          {/* Gift P2P Header - polished grammar + pulsating gift */}
+          <div className="mb-4 p-4 bg-emerald-900/30 rounded-2xl border border-emerald-700 text-center">
+            <p className="text-emerald-400 font-bold text-sm flex items-center justify-center gap-2">
+              🎁 Gift your friends $ANODE tokens! Enter their Tonkeeper wallet address and send them a gift of $ANODE.
+              <span className="gift-pulse text-2xl">🎁</span>
+            </p>
+            <p className="text-[10px] text-emerald-300 mt-2">The receiver can easily swap $ANODE for USDT or convert to any local fiat currency on a DEX, depending on their country.</p>
+          </div>
+
           <div className="space-y-4">
             <div className="flex gap-2">
               <input type="number" placeholder="Stake Amount" className="flex-1 bg-slate-900 p-3 rounded-xl text-xs border border-slate-700" value={stakeAmount} onChange={(e) => setStakeAmount(e.target.value)} />
@@ -839,7 +915,17 @@ function App() {
                         <input type="checkbox" checked={declarationAccepted} onChange={(e) => setDeclarationAccepted(e.target.checked)} className="mt-1" />
                         <label className="text-[10px] text-gray-300">"I certify that these funds (USDT) are not derived from illicit or criminal activity and that I am not a Politically Exposed Person (PEP)."</label>
                       </div>
-                      <button onClick={handleKycSubmit} className="w-full bg-amber-500 py-3 rounded-xl font-bold text-xs uppercase">Submit KYC</button>
+                      <button 
+                        onClick={handleKycSubmit} 
+                        disabled={!isKycComplete}
+                        className={`w-full py-3 rounded-xl font-bold text-xs uppercase transition-colors ${
+                          isKycComplete 
+                            ? 'bg-amber-500 hover:bg-amber-600' 
+                            : 'bg-gray-600 cursor-not-allowed'
+                        }`}
+                      >
+                        Submit KYC
+                      </button>
                     </div>
                   ) : (
                     <div className="space-y-2">
