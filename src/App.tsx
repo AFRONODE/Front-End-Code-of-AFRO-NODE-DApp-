@@ -245,7 +245,7 @@ function App() {
     let movementDetected = false;
     for (const img of frames) {
       const detection = await faceapi
-        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ minConfidence: 0.4 }))
+        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ minConfidence: 0.4 }))
         .withFaceLandmarks();
 
       if (detection) {
@@ -511,7 +511,7 @@ function App() {
     const image = webcamRef.current?.getScreenshot();
     if (!image) return;
     const detection = await faceapi
-      .detectSingleFace(image, new faceapi.TinyFaceDetectorOptions({ minConfidence: 0.4 }))
+      .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ minConfidence: 0.4 }))
       .withFaceLandmarks();
     if (detection) {
       setIsLivenessDetected(true);
