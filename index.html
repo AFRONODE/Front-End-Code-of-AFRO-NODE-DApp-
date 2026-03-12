@@ -1,41 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script><style>.eruda-entry-btn{right:5px!important;bottom:100px!important;opacity:0.3!important;}</style>
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+    <style>.eruda-entry-btn{right:5px!important;bottom:100px!important;opacity:0.3!important;}</style>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/anode-token.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>AFRO-NODE</title>
-    <style>
-        position: fixed; right: 0; top: 15%; width: 42px; height: 42px;
-        background: #1e293b; color: #3b82f6; z-index: 100000;
-        display: flex; align-items: center; justify-content: center;
-        border-radius: 8px 0 0 8px; border: 1px solid #3b82f6; border-right: none;
-        cursor: pointer; font-size: 20px; box-shadow: -2px 0 10px rgba(0,0,0,0.5);
-      }
-        position: fixed; top: 0; right: -100%; width: 100%; height: 100%;
-        background: #020617; color: #10b981; z-index: 100001; display: flex;
-        flex-direction: column; transition: right 0.3s ease;
-      }
-    </style>
+    <title>AFRO-NODE DApp</title>
   </head>
   <body>
-        <span>ERIKA DIAGNOSTICS</span>
-        <button onclick="toggleErika()" style="background:#ef4444; border:none; color:white; padding:5px 10px; border-radius:4px;">CLOSE</button>
-      </div>
-      <div id="log-display" style="padding:10px; font-size:10px; color:#64748b; border-bottom:1px solid #1e293b;">Select text below to copy logs</div>
-    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      function toggleErika() { sidebar.style.right = sidebar.style.right === '0px' ? '-100%' : '0px'; }
-      function log(m, type="INFO") {
-        logBox.innerText += `\n[${new Date().toLocaleTimeString()}] ${type}: ${m}`;
-        logBox.scrollTop = logBox.scrollHeight;
-      }
-      window.onerror = (m) => log(m, "ERROR");
-      window.onunhandledrejection = (e) => log(e.reason, "REJECTION");
-      console.error = (m) => log(m, "CONSOLE");
-    </script>
   </body>
 </html>
